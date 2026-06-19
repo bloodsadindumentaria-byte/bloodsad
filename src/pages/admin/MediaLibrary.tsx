@@ -21,7 +21,7 @@ async function identifyAlbum(file: File): Promise<string> {
   const imageBase64 = btoa(binary)
   const mediaType = file.type || 'image/jpeg'
 
-  const { data, error } = await supabase.functions.invoke('identify-album', {
+  const { data, error } = await supabase.functions.invoke('dynamic-action', {
     body: { imageBase64, mediaType },
   })
   if (error) throw error
