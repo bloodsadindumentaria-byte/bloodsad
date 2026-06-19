@@ -32,10 +32,12 @@ async function uploadImage(file: File, slug: string): Promise<string> {
 // Modal de selección desde biblioteca
 function MediaPickerModal({
   multiple,
+  albumTitle,
   onConfirm,
   onClose,
 }: {
   multiple: boolean
+  albumTitle: string
   onConfirm: (urls: string[]) => void
   onClose: () => void
 }) {
@@ -49,10 +51,19 @@ function MediaPickerModal({
       .select('*')
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        setItems((data as MediaItem[]) ?? [])
+        const all = (data as MediaItem[]) ?? []
+        const title = albumTitle.toLowerCase().trim()
+        // Imágenes del CD que coincide con el título del álbum van primero
+        const sorted = title
+          ? [
+              ...all.filter((i) => i.label?.toLowerCase().trim() === title),
+              ...all.filter((i) => i.label?.toLowerCase().trim() !== title),
+            ]
+          : all
+        setItems(sorted)
         setLoading(false)
       })
-  }, [])
+  }, [albumTitle])
 
   function toggle(url: string) {
     if (!multiple) {
@@ -84,6 +95,11 @@ function MediaPickerModal({
         </div>
 
         <div className="overflow-y-auto flex-1 p-3">
+          {!loading && albumTitle && items.some((i) => i.label?.toLowerCase().trim() === albumTitle.toLowerCase().trim()) && (
+            <p className="text-[#6B5CE7] text-xs mb-3 uppercase tracking-wider">
+              ↑ Imágenes de "{albumTitle}" al inicio
+            </p>
+          )}
           {loading ? (
             <p className="text-[#888888] text-center py-8">Cargando...</p>
           ) : items.length === 0 ? (
@@ -94,27 +110,38 @@ function MediaPickerModal({
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {items.map((item) => {
                 const isSelected = selected.includes(item.url)
+                const isMatch = albumTitle
+                  ? item.label?.toLowerCase().trim() === albumTitle.toLowerCase().trim()
+                  : false
                 return (
-                  <button
-                    key={item.id}
-                    onClick={() => toggle(item.url)}
-                    className={`relative aspect-square overflow-hidden rounded-sm border-2 transition-all duration-150 ${
-                      isSelected
-                        ? 'border-[#6B5CE7] shadow-[0_0_8px_rgba(107,92,231,0.5)]'
-                        : 'border-[#2a2a2a] hover:border-[#6B5CE7]'
-                    }`}
-                  >
-                    <img
-                      src={item.url}
-                      alt={item.label ?? item.filename}
-                      className="w-full h-full object-cover"
-                    />
-                    {isSelected && (
-                      <div className="absolute inset-0 bg-[rgba(107,92,231,0.3)] flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">✓</span>
-                      </div>
+                  <div key={item.id} className="space-y-0.5">
+                    <button
+                      onClick={() => toggle(item.url)}
+                      className={`relative w-full aspect-square overflow-hidden rounded-sm border-2 transition-all duration-150 ${
+                        isSelected
+                          ? 'border-[#6B5CE7] shadow-[0_0_8px_rgba(107,92,231,0.5)]'
+                          : isMatch
+                          ? 'border-[#6B5CE7]/40 hover:border-[#6B5CE7]'
+                          : 'border-[#2a2a2a] hover:border-[#6B5CE7]'
+                      }`}
+                    >
+                      <img
+                        src={item.url}
+                        alt={item.label ?? item.filename}
+                        className="w-full h-full object-cover"
+                      />
+                      {isSelected && (
+                        <div className="absolute inset-0 bg-[rgba(107,92,231,0.3)] flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">✓</span>
+                        </div>
+                      )}
+                    </button>
+                    {item.label && (
+                      <p className={`text-[10px] truncate text-center ${isMatch ? 'text-[#6B5CE7]' : 'text-[#555555]'}`}>
+                        {item.label}
+                      </p>
                     )}
-                  </button>
+                  </div>
                 )
               })}
             </div>
@@ -468,6 +495,7 @@ export function AlbumForm() {
       {pickerTarget && (
         <MediaPickerModal
           multiple={pickerTarget === 'gallery'}
+          albumTitle={form.title ?? ''}
           onConfirm={handlePickFromLibrary}
           onClose={() => setPickerTarget(null)}
         />
