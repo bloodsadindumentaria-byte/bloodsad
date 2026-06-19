@@ -1,8 +1,10 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@/hooks/useAuth'
 
 export function Header() {
   const { t, i18n } = useTranslation()
+  const { session } = useAuth()
 
   function toggleLang() {
     i18n.changeLanguage(i18n.language === 'es' ? 'en' : 'es')
@@ -49,6 +51,14 @@ export function Header() {
           >
             {i18n.language === 'es' ? 'EN' : 'ES'}
           </button>
+
+          <Link
+            to={session ? '/admin' : '/admin/login'}
+            className="text-[#2a2a2a] hover:text-[#6B5CE7] transition-colors duration-200 text-base leading-none"
+            title={session ? 'Admin' : 'Login'}
+          >
+            🔒
+          </Link>
         </nav>
       </div>
     </header>
