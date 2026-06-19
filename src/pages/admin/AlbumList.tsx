@@ -11,6 +11,14 @@ export function AlbumList() {
   const { t } = useTranslation()
   const { albums, loading } = useAlbums()
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+
+  const filtered = query.trim()
+    ? albums.filter((a) =>
+        [a.title, a.artist?.name ?? '', String(a.year), a.label]
+          .some((v) => v.toLowerCase().includes(query.toLowerCase()))
+      )
+    : albums
 
   async function handleDelete(id: string) {
     if (!confirm('¿Eliminar este álbum?')) return
@@ -22,12 +30,20 @@ export function AlbumList() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">{t('admin.albums')}</h1>
         <Link to="/admin/albums/new" className={buttonVariants()}>
           {t('admin.new')}
         </Link>
       </div>
+
+      <input
+        type="search"
+        placeholder="Buscar por título, artista, año o sello..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="w-full bg-[#111111] border border-[#2a2a2a] focus:border-[#6B5CE7] rounded-sm px-3 py-2 text-sm text-[#e0e0e0] placeholder-[#555555] outline-none transition-colors mb-4"
+      />
 
       {loading ? (
         <p className="text-muted-foreground">Cargando...</p>
@@ -45,7 +61,14 @@ export function AlbumList() {
               </tr>
             </thead>
             <tbody>
-              {albums.map((album) => (
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-[#888888] text-sm">
+                    Sin resultados para "{query}"
+                  </td>
+                </tr>
+              )}
+              {filtered.map((album) => (
                 <tr key={album.id} className="border-t hover:bg-muted/30">
                   <td className="p-3 font-medium">{album.title}</td>
                   <td className="p-3 text-muted-foreground hidden md:table-cell">

@@ -9,6 +9,14 @@ export function ArtistList() {
   const { t } = useTranslation()
   const { artists, loading } = useArtists()
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+
+  const filtered = query.trim()
+    ? artists.filter((a) =>
+        [a.name, a.origin ?? '', a.slug]
+          .some((v) => v.toLowerCase().includes(query.toLowerCase()))
+      )
+    : artists
 
   async function handleDelete(id: string) {
     if (!confirm('¿Eliminar este artista?')) return
@@ -20,12 +28,20 @@ export function ArtistList() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">{t('admin.artists')}</h1>
         <Link to="/admin/artists/new" className={buttonVariants()}>
           {t('admin.new')}
         </Link>
       </div>
+
+      <input
+        type="search"
+        placeholder="Buscar por nombre, origen o slug..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="w-full bg-[#111111] border border-[#2a2a2a] focus:border-[#6B5CE7] rounded-sm px-3 py-2 text-sm text-[#e0e0e0] placeholder-[#555555] outline-none transition-colors mb-4"
+      />
 
       {loading ? (
         <p className="text-muted-foreground">Cargando...</p>
@@ -41,7 +57,14 @@ export function ArtistList() {
               </tr>
             </thead>
             <tbody>
-              {artists.map((artist) => (
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="p-6 text-center text-[#888888] text-sm">
+                    Sin resultados para "{query}"
+                  </td>
+                </tr>
+              )}
+              {filtered.map((artist) => (
                 <tr key={artist.id} className="border-t hover:bg-muted/30">
                   <td className="p-3 font-medium">{artist.name}</td>
                   <td className="p-3 text-muted-foreground hidden sm:table-cell">{artist.origin}</td>

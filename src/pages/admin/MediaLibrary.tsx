@@ -63,6 +63,7 @@ export function MediaLibrary() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<FileList | null>(null)
+  const [query, setQuery] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -119,8 +120,15 @@ export function MediaLibrary() {
     setEditingId(null)
   }
 
+  const visibleItems = query.trim()
+    ? items.filter((i) =>
+        [i.label ?? '', i.filename]
+          .some((v) => v.toLowerCase().includes(query.toLowerCase()))
+      )
+    : items
+
   // Agrupar por CD para mostrar encabezados
-  const grouped = items.reduce<Record<string, MediaItem[]>>((acc, item) => {
+  const grouped = visibleItems.reduce<Record<string, MediaItem[]>>((acc, item) => {
     const key = item.label ?? '(sin CD)'
     if (!acc[key]) acc[key] = []
     acc[key].push(item)
@@ -163,12 +171,22 @@ export function MediaLibrary() {
         />
       </div>
 
+      <input
+        type="search"
+        placeholder="Buscar por nombre de CD o archivo..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="w-full bg-[#111111] border border-[#2a2a2a] focus:border-[#6B5CE7] rounded-sm px-3 py-2 text-sm text-[#e0e0e0] placeholder-[#555555] outline-none transition-colors mb-4"
+      />
+
       {error && <p className="text-sm text-[#c0392b] mb-4">{error}</p>}
 
       {loading ? (
         <p className="text-[#888888]">Cargando...</p>
       ) : items.length === 0 ? (
         <p className="text-[#888888] text-center py-16">No hay imágenes todavía.</p>
+      ) : visibleItems.length === 0 ? (
+        <p className="text-[#888888] text-center py-16">Sin resultados para "{query}"</p>
       ) : (
         <div className="space-y-8">
           {Object.entries(grouped).map(([cd, cdItems]) => (
