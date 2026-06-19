@@ -4,48 +4,12 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import type { MediaItem } from '@/types'
 
-// Redimensiona a máx 1200px y convierte a JPEG 0.85
-// Procesa de a una para liberar memoria entre imágenes en iPhone
-function compressImage(file: File): Promise<Blob> {
-  return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        const MAX = 1200
-        let { width, height } = img
-        if (width > MAX || height > MAX) {
-          if (width > height) { height = Math.round((height * MAX) / width); width = MAX }
-          else { width = Math.round((width * MAX) / height); height = MAX }
-        }
-        const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext('2d')!
-        ctx.drawImage(img, 0, 0, width, height)
-        canvas.toBlob(
-          (blob) => {
-            canvas.width = 0 // libera memoria
-            resolve(blob ?? file)
-          },
-          'image/jpeg',
-          0.85
-        )
-      }
-      img.onerror = () => resolve(file)
-      img.src = e.target?.result as string
-    }
-    reader.onerror = () => resolve(file)
-    reader.readAsDataURL(file)
-  })
-}
-
 async function uploadOne(file: File): Promise<string> {
-  const blob = await compressImage(file)
-  const path = `media/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const path = `media/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
   const { error } = await supabase.storage
     .from('albums')
-    .upload(path, blob, { upsert: false, contentType: 'image/jpeg' })
+    .upload(path, file, { upsert: false })
   if (error) throw new Error(error.message)
   const { data } = supabase.storage.from('albums').getPublicUrl(path)
   return data.publicUrl
@@ -71,7 +35,7 @@ export function MediaLibrary() {
   const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number; failed: number } | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number; failed: number; lastError: string } | null>(null)
   const [query, setQuery] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState('')
@@ -97,22 +61,23 @@ export function MediaLibrary() {
     const arr = Array.from(files).slice(0, 99)
     let done = 0
     let failed = 0
-    setUploadProgress({ done: 0, total: arr.length, failed: 0 })
+    let lastError = ''
+    setUploadProgress({ done: 0, total: arr.length, failed: 0, lastError: '' })
 
-    // Cola de a 1 para no saturar memoria en iPhone
     for (const file of arr) {
       try {
         const url = await uploadOne(file)
         await supabase.from('media').insert({ url, filename: file.name, label: null })
-      } catch {
+      } catch (err) {
         failed++
+        lastError = err instanceof Error ? err.message : String(err)
       }
       done++
-      setUploadProgress({ done, total: arr.length, failed })
+      setUploadProgress({ done, total: arr.length, failed, lastError })
     }
 
     await fetchItems()
-    if (failed > 0) setError(`${failed} imagen${failed > 1 ? 'es' : ''} no se pudo${failed > 1 ? 'eron' : ''} subir.`)
+    if (failed > 0) setError(`${failed} imagen${failed > 1 ? 'es' : ''} fallaron. Último error: ${lastError}`)
     setUploading(false)
     setUploadProgress(null)
     if (inputRef.current) inputRef.current.value = ''
@@ -223,6 +188,9 @@ export function MediaLibrary() {
                 style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%` }}
               />
             </div>
+            {uploadProgress.lastError && (
+              <p className="text-[#c0392b] text-xs break-all">{uploadProgress.lastError}</p>
+            )}
           </div>
         ) : (
           <>
