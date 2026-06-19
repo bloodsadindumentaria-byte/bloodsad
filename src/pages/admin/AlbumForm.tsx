@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/lib/supabase'
 import { useArtists } from '@/hooks/useArtists'
 import { useGenres } from '@/hooks/useGenres'
-import type { Album, AlbumCondition, Currency } from '@/types'
+import type { Album, AlbumCondition, AlbumImages, Currency } from '@/types'
 
 const CONDITIONS: AlbumCondition[] = ['mint', 'near_mint', 'very_good_plus', 'very_good', 'good', 'fair', 'poor']
 const CURRENCIES: Currency[] = ['ARS', 'USD', 'EUR']
@@ -17,7 +17,77 @@ const CURRENCIES: Currency[] = ['ARS', 'USD', 'EUR']
 const EMPTY: Partial<Album> = {
   title: '', slug: '', year: new Date().getFullYear(), label: '',
   description_es: '', description_en: '', condition: 'near_mint',
-  price: 0, currency: 'ARS', sold: false, images: [], tracklist: [],
+  price: 0, currency: 'ARS', sold: false, images: null, tracklist: [],
+}
+
+async function uploadImage(file: File, slug: string): Promise<string> {
+  const ext = file.name.split('.').pop()
+  const path = `${slug}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const { error } = await supabase.storage.from('albums').upload(path, file, { upsert: true })
+  if (error) throw new Error(error.message)
+  const { data } = supabase.storage.from('albums').getPublicUrl(path)
+  return data.publicUrl
+}
+
+// Área de drop estilizada
+function DropZone({
+  label,
+  preview,
+  multiple = false,
+  onFiles,
+}: {
+  label: string
+  preview?: string | string[]
+  multiple?: boolean
+  onFiles: (files: FileList) => void
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  const [dragging, setDragging] = useState(false)
+
+  const previews = Array.isArray(preview) ? preview : preview ? [preview] : []
+
+  return (
+    <div className="space-y-2">
+      <span className="block text-[#888888] text-xs uppercase tracking-wider">{label}</span>
+
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files.length) onFiles(e.dataTransfer.files) }}
+        onClick={() => ref.current?.click()}
+        className={`
+          border border-dashed rounded-sm p-4 text-center cursor-pointer
+          transition-colors duration-200
+          ${dragging ? 'border-[#6B5CE7] bg-[rgba(107,92,231,0.08)]' : 'border-[#2a2a2a] hover:border-[#6B5CE7]'}
+        `}
+      >
+        <p className="text-[#888888] text-xs">
+          {previews.length ? 'Cambiar imagen' : 'Arrastrá o hacé click para subir'}
+        </p>
+        <input
+          ref={ref}
+          type="file"
+          accept="image/*"
+          multiple={multiple}
+          className="hidden"
+          onChange={(e) => { if (e.target.files?.length) onFiles(e.target.files) }}
+        />
+      </div>
+
+      {previews.length > 0 && (
+        <div className={`grid gap-1 ${previews.length > 1 ? 'grid-cols-4' : 'grid-cols-1'}`}>
+          {previews.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={`preview ${i + 1}`}
+              className="aspect-square object-cover rounded-sm border border-[#2a2a2a]"
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function AlbumForm() {
@@ -27,9 +97,19 @@ export function AlbumForm() {
   const { t } = useTranslation()
   const { artists } = useArtists()
   const { genres } = useGenres()
+
   const [form, setForm] = useState<Partial<Album>>(EMPTY)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Archivos pendientes de subir
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([])
+
+  // Previews locales (object URLs)
+  const [coverPreview, setCoverPreview] = useState<string>('')
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([])
 
   useEffect(() => {
     if (!isEdit) return
@@ -38,34 +118,81 @@ export function AlbumForm() {
     })
   }, [id, isEdit])
 
+  // Carga previews desde imágenes existentes al editar
+  useEffect(() => {
+    const imgs = form.images as AlbumImages | null
+    if (imgs && !coverFile) setCoverPreview(imgs.cover ?? '')
+    if (imgs && !galleryFiles.length) setGalleryPreviews(imgs.gallery ?? [])
+  }, [form.images]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function set<K extends keyof Album>(key: K, value: Album[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleCoverFiles(files: FileList) {
+    const file = files[0]
+    if (!file) return
+    setCoverFile(file)
+    setCoverPreview(URL.createObjectURL(file))
+  }
+
+  function handleGalleryFiles(files: FileList) {
+    const arr = Array.from(files).slice(0, 4)
+    setGalleryFiles(arr)
+    setGalleryPreviews(arr.map((f) => URL.createObjectURL(f)))
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setSaving(true)
     setError(null)
 
-    const payload = { ...form }
+    const slug = form.slug ?? 'album'
+    let images: AlbumImages = (form.images as AlbumImages) ?? { cover: '', gallery: [] }
+
+    // Subir imágenes si hay archivos nuevos
+    if (coverFile || galleryFiles.length) {
+      setUploading(true)
+      try {
+        if (coverFile) {
+          images = { ...images, cover: await uploadImage(coverFile, slug) }
+        }
+        if (galleryFiles.length) {
+          const urls = await Promise.all(galleryFiles.map((f) => uploadImage(f, slug)))
+          images = { ...images, gallery: urls }
+        }
+      } catch (err) {
+        setError(`Error al subir imágenes: ${err instanceof Error ? err.message : 'desconocido'}`)
+        setSaving(false)
+        setUploading(false)
+        return
+      }
+      setUploading(false)
+    }
+
+    const payload = { ...form, images }
     if (!isEdit) delete payload.id
 
-    const { error } = isEdit
+    const { error: dbError } = isEdit
       ? await supabase.from('albums').update(payload).eq('id', id!)
       : await supabase.from('albums').insert(payload)
 
-    if (error) setError(error.message)
+    if (dbError) setError(dbError.message)
     else navigate('/admin/albums')
     setSaving(false)
   }
 
+  const statusLabel = uploading ? 'Subiendo imágenes...' : saving ? 'Guardando...' : t('admin.save')
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">
-        {isEdit ? t('admin.edit') : t('admin.new')} {t('admin.albums').slice(0, -1)}
+        {isEdit ? t('admin.edit') : t('admin.new')} álbum
       </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
+
+        {/* Título + slug */}
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label>Título</Label>
@@ -77,6 +204,7 @@ export function AlbumForm() {
           </div>
         </div>
 
+        {/* Artista + género */}
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label>Artista</Label>
@@ -102,6 +230,7 @@ export function AlbumForm() {
           </div>
         </div>
 
+        {/* Año + precio + moneda */}
         <div className="grid sm:grid-cols-3 gap-4">
           <div className="space-y-1">
             <Label>Año</Label>
@@ -122,6 +251,7 @@ export function AlbumForm() {
           </div>
         </div>
 
+        {/* Sello + condición */}
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label>Sello</Label>
@@ -138,6 +268,7 @@ export function AlbumForm() {
           </div>
         </div>
 
+        {/* Descripciones */}
         <div className="space-y-1">
           <Label>Descripción (ES)</Label>
           <Textarea rows={3} value={form.description_es ?? ''} onChange={(e) => set('description_es', e.target.value)} />
@@ -147,30 +278,41 @@ export function AlbumForm() {
           <Textarea rows={3} value={form.description_en ?? ''} onChange={(e) => set('description_en', e.target.value)} />
         </div>
 
-        <div className="space-y-1">
-          <Label>Imágenes (URLs separadas por coma)</Label>
-          <Input
-            value={(form.images ?? []).join(', ')}
-            onChange={(e) => set('images', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
+        {/* Imágenes */}
+        <div className="border border-[#2a2a2a] rounded-sm p-4 space-y-4">
+          <p className="text-[#888888] text-xs uppercase tracking-wider">Imágenes</p>
+
+          <DropZone
+            label="Portada"
+            preview={coverPreview || undefined}
+            onFiles={handleCoverFiles}
+          />
+
+          <DropZone
+            label="Galería (hasta 4 imágenes)"
+            preview={galleryPreviews.length ? galleryPreviews : undefined}
+            multiple
+            onFiles={handleGalleryFiles}
           />
         </div>
 
+        {/* Vendido */}
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
             id="sold"
             checked={form.sold ?? false}
             onChange={(e) => set('sold', e.target.checked)}
-            className="h-4 w-4"
+            className="h-4 w-4 accent-[#6B5CE7]"
           />
           <Label htmlFor="sold">Vendido</Label>
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p className="text-sm text-[#c0392b]">{error}</p>}
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Guardando...' : t('admin.save')}
+          <Button type="submit" disabled={saving || uploading}>
+            {statusLabel}
           </Button>
           <Button type="button" variant="outline" onClick={() => navigate('/admin/albums')}>
             {t('admin.cancel')}

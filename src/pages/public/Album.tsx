@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
@@ -6,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { useAlbum } from '@/hooks/useAlbums'
 import { formatPrice, conditionLabel, buildWhatsAppLink, buildMailtoLink } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import type { AlbumImages } from '@/types'
 
 const WHATSAPP = import.meta.env.VITE_CONTACT_WHATSAPP as string
 const EMAIL = import.meta.env.VITE_CONTACT_EMAIL as string
@@ -16,11 +18,19 @@ export function Album() {
   const { t, i18n } = useTranslation()
   const lang = i18n.language as 'es' | 'en'
 
-  if (loading) return <div className="text-center py-24 text-muted-foreground">Cargando...</div>
-  if (!album) return <div className="text-center py-24 text-muted-foreground">Álbum no encontrado.</div>
+  // Imagen activa en el visor
+  const [activeImg, setActiveImg] = useState<string>('')
+
+  if (loading) return <div className="text-center py-24 text-[#888888]">Cargando...</div>
+  if (!album) return <div className="text-center py-24 text-[#888888]">Álbum no encontrado.</div>
+
+  const images = album.images as AlbumImages | null
+  const cover = images?.cover ?? ''
+  const gallery = images?.gallery ?? []
+  const allImages = [cover, ...gallery].filter(Boolean)
+  const displayImg = activeImg || cover
 
   const description = lang === 'en' ? album.description_en : album.description_es
-  const ogImage = album.images?.[0] ?? ''
 
   return (
     <>
@@ -29,40 +39,49 @@ export function Album() {
         <meta name="description" content={description} />
         <meta property="og:title" content={`${album.title} — Blood Sad Shop`} />
         <meta property="og:description" content={description} />
-        {ogImage && <meta property="og:image" content={ogImage} />}
+        {cover && <meta property="og:image" content={cover} />}
       </Helmet>
 
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <Link to="/catalog" className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-block">
+        <Link
+          to="/catalog"
+          className="text-sm text-[#888888] hover:text-[#e0e0e0] transition-colors mb-6 inline-block"
+        >
           ← {t('album.back')}
         </Link>
 
         <div className="grid md:grid-cols-2 gap-10">
-          {/* Images */}
+          {/* Imágenes */}
           <div className="space-y-2">
-            {album.images?.length > 0 ? (
-              <>
-                <img
-                  src={album.images[0]}
-                  alt={album.title}
-                  className="w-full aspect-square object-cover rounded-lg"
-                />
-                {album.images.length > 1 && (
-                  <div className="grid grid-cols-4 gap-1">
-                    {album.images.slice(1).map((img, i) => (
-                      <img
-                        key={i}
-                        src={img}
-                        alt={`${album.title} ${i + 2}`}
-                        className="aspect-square object-cover rounded"
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
+            {/* Portada / imagen activa */}
+            {displayImg ? (
+              <img
+                src={displayImg}
+                alt={album.title}
+                className="w-full aspect-square object-cover rounded-sm border border-[#2a2a2a]"
+              />
             ) : (
-              <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-6xl">
-                🎵
+              <div className="w-full aspect-square bg-[#111111] border border-[#2a2a2a] rounded-sm flex items-center justify-center text-[#2a2a2a] text-6xl">
+                ◈
+              </div>
+            )}
+
+            {/* Thumbnails de galería */}
+            {allImages.length > 1 && (
+              <div className="grid grid-cols-4 gap-1">
+                {allImages.map((src, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveImg(src)}
+                    className={`aspect-square overflow-hidden rounded-sm border transition-colors duration-150 ${
+                      (activeImg || cover) === src
+                        ? 'border-[#6B5CE7]'
+                        : 'border-[#2a2a2a] hover:border-[#6B5CE7]'
+                    }`}
+                  >
+                    <img src={src} alt={`${album.title} ${i + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -70,11 +89,11 @@ export function Album() {
           {/* Info */}
           <div className="space-y-4">
             <div>
-              <h1 className="text-3xl font-bold">{album.title}</h1>
+              <h1 className="text-3xl font-bold text-[#e0e0e0]">{album.title}</h1>
               {album.artist && (
                 <Link
                   to={`/artist/${album.artist.slug}`}
-                  className="text-lg text-muted-foreground hover:text-foreground"
+                  className="text-lg text-[#888888] hover:text-[#e0e0e0] transition-colors"
                 >
                   {album.artist.name}
                 </Link>
@@ -93,17 +112,17 @@ export function Album() {
             </div>
 
             {description && (
-              <p className="text-base leading-relaxed text-muted-foreground">{description}</p>
+              <p className="text-base leading-relaxed text-[#888888]">{description}</p>
             )}
 
-            <div className="text-2xl font-black">
+            <div className="text-2xl font-black text-[#e0e0e0]">
               {formatPrice(album.price, album.currency)}
             </div>
 
             {album.sold ? (
-              <Badge variant="destructive" className="text-base px-4 py-2">
+              <div className="inline-block bg-[#6B5CE7] text-white text-sm font-semibold px-4 py-2 uppercase tracking-wider">
                 {t('album.sold_out')}
-              </Badge>
+              </div>
             ) : (
               <div className="flex flex-col sm:flex-row gap-2">
                 {WHATSAPP && (
@@ -111,7 +130,10 @@ export function Album() {
                     href={buildWhatsAppLink(album.title, WHATSAPP)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cn(buttonVariants({ size: 'lg' }))}
+                    className={cn(
+                      buttonVariants({ size: 'lg' }),
+                      'bg-[#6B5CE7] hover:bg-[#4a3eb5] border-transparent text-white'
+                    )}
                   >
                     {t('album.buy_whatsapp')}
                   </a>
@@ -119,7 +141,10 @@ export function Album() {
                 {EMAIL && (
                   <a
                     href={buildMailtoLink(album.title, EMAIL)}
-                    className={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}
+                    className={cn(
+                      buttonVariants({ variant: 'outline', size: 'lg' }),
+                      'border-[#2a2a2a] text-[#888888] hover:border-[#6B5CE7] hover:text-[#6B5CE7]'
+                    )}
                   >
                     {t('album.buy_email')}
                   </a>
@@ -129,10 +154,10 @@ export function Album() {
 
             {album.tracklist?.length > 0 && (
               <div>
-                <h2 className="font-semibold text-lg mb-2">{t('album.tracklist')}</h2>
-                <ol className="space-y-1 text-sm text-muted-foreground">
+                <h2 className="font-semibold text-lg mb-2 text-[#e0e0e0]">{t('album.tracklist')}</h2>
+                <ol className="space-y-1 text-sm text-[#888888]">
                   {album.tracklist.map((track, i) => (
-                    <li key={i} className="flex justify-between gap-4">
+                    <li key={i} className="flex justify-between gap-4 border-b border-[#1a1a1a] pb-1">
                       <span>{track.position}. {track.title}</span>
                       {track.duration && <span className="tabular-nums">{track.duration}</span>}
                     </li>

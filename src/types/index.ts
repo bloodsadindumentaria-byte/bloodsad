@@ -35,6 +35,11 @@ export interface Track {
   duration?: string
 }
 
+export interface AlbumImages {
+  cover: string
+  gallery: string[]
+}
+
 export interface Album {
   id: string
   slug: string
@@ -50,7 +55,7 @@ export interface Album {
   price: number
   currency: Currency
   sold: boolean
-  images: string[]
+  images: AlbumImages | null
   genre_id: string
   genre?: Genre
   created_at: string

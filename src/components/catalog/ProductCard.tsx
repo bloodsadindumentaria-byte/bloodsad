@@ -10,7 +10,7 @@ interface Props {
 export function ProductCard({ album }: Props) {
   const { t, i18n } = useTranslation()
   const lang = i18n.language as 'es' | 'en'
-  const cover = album.images?.[0]
+  const cover = album.images?.cover ?? ''
 
   return (
     <Link to={`/album/${album.slug}`} className="group block">
