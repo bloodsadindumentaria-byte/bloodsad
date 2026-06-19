@@ -93,6 +93,19 @@ export function Dashboard() {
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="pt-6 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold">Biblioteca de medios</h2>
+              <span className="text-muted-foreground text-sm">imágenes</span>
+            </div>
+            <div className="flex gap-2">
+              <Link to="/admin/media" className={buttonVariants({ size: 'sm' })}>
+                Abrir biblioteca
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

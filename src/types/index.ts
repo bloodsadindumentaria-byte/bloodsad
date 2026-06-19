@@ -61,6 +61,14 @@ export interface Album {
   created_at: string
 }
 
+export interface MediaItem {
+  id: string
+  filename: string
+  label: string | null
+  url: string
+  created_at: string
+}
+
 export interface Order {
   id: string
   album_id: string

@@ -17,6 +17,7 @@ import { AlbumList } from '@/pages/admin/AlbumList'
 import { AlbumForm } from '@/pages/admin/AlbumForm'
 import { ArtistList } from '@/pages/admin/ArtistList'
 import { ArtistForm } from '@/pages/admin/ArtistForm'
+import { MediaLibrary } from '@/pages/admin/MediaLibrary'
 
 export default function App() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/admin/artists" element={<ArtistList />} />
             <Route path="/admin/artists/new" element={<ArtistForm />} />
             <Route path="/admin/artists/:id/edit" element={<ArtistForm />} />
+            <Route path="/admin/media" element={<MediaLibrary />} />
           </Route>
         </Routes>
       </BrowserRouter>

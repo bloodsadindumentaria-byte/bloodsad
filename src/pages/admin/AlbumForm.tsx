@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/lib/supabase'
 import { useArtists } from '@/hooks/useArtists'
 import { useGenres } from '@/hooks/useGenres'
-import type { Album, AlbumCondition, AlbumImages, Currency } from '@/types'
+import type { Album, AlbumCondition, AlbumImages, Currency, MediaItem } from '@/types'
 
 const CONDITIONS: AlbumCondition[] = ['mint', 'near_mint', 'very_good_plus', 'very_good', 'good', 'fair', 'poor']
 const CURRENCIES: Currency[] = ['ARS', 'USD', 'EUR']
@@ -29,17 +29,127 @@ async function uploadImage(file: File, slug: string): Promise<string> {
   return data.publicUrl
 }
 
+// Modal de selección desde biblioteca
+function MediaPickerModal({
+  multiple,
+  onConfirm,
+  onClose,
+}: {
+  multiple: boolean
+  onConfirm: (urls: string[]) => void
+  onClose: () => void
+}) {
+  const [items, setItems] = useState<MediaItem[]>([])
+  const [selected, setSelected] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    supabase
+      .from('media')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setItems((data as MediaItem[]) ?? [])
+        setLoading(false)
+      })
+  }, [])
+
+  function toggle(url: string) {
+    if (!multiple) {
+      setSelected([url])
+      return
+    }
+    setSelected((prev) =>
+      prev.includes(url)
+        ? prev.filter((u) => u !== url)
+        : prev.length < 4
+        ? [...prev, url]
+        : prev
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+      <div className="bg-[#111111] border border-[#2a2a2a] rounded-sm w-full max-w-3xl mx-4 max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a]">
+          <span className="text-[#e0e0e0] font-semibold text-sm">
+            Biblioteca de medios{multiple ? ' — hasta 4' : ' — elegir 1'}
+          </span>
+          <button
+            onClick={onClose}
+            className="text-[#888888] hover:text-[#e0e0e0] text-lg leading-none"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-3">
+          {loading ? (
+            <p className="text-[#888888] text-center py-8">Cargando...</p>
+          ) : items.length === 0 ? (
+            <p className="text-[#888888] text-center py-8">
+              No hay imágenes en la biblioteca todavía.
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {items.map((item) => {
+                const isSelected = selected.includes(item.url)
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => toggle(item.url)}
+                    className={`relative aspect-square overflow-hidden rounded-sm border-2 transition-all duration-150 ${
+                      isSelected
+                        ? 'border-[#6B5CE7] shadow-[0_0_8px_rgba(107,92,231,0.5)]'
+                        : 'border-[#2a2a2a] hover:border-[#6B5CE7]'
+                    }`}
+                  >
+                    <img
+                      src={item.url}
+                      alt={item.label ?? item.filename}
+                      className="w-full h-full object-cover"
+                    />
+                    {isSelected && (
+                      <div className="absolute inset-0 bg-[rgba(107,92,231,0.3)] flex items-center justify-center">
+                        <span className="text-white font-bold text-lg">✓</span>
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 px-4 py-3 border-t border-[#2a2a2a]">
+          <Button
+            disabled={selected.length === 0}
+            onClick={() => onConfirm(selected)}
+          >
+            Confirmar selección{selected.length > 0 ? ` (${selected.length})` : ''}
+          </Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Área de drop estilizada
 function DropZone({
   label,
   preview,
   multiple = false,
   onFiles,
+  onPickFromLibrary,
 }: {
   label: string
   preview?: string | string[]
   multiple?: boolean
   onFiles: (files: FileList) => void
+  onPickFromLibrary: () => void
 }) {
   const ref = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -73,6 +183,14 @@ function DropZone({
           onChange={(e) => { if (e.target.files?.length) onFiles(e.target.files) }}
         />
       </div>
+
+      <button
+        type="button"
+        onClick={onPickFromLibrary}
+        className="text-xs text-[#6B5CE7] hover:text-[#4a3eb5] transition-colors underline underline-offset-2"
+      >
+        Elegir de biblioteca →
+      </button>
 
       {previews.length > 0 && (
         <div className={`grid gap-1 ${previews.length > 1 ? 'grid-cols-4' : 'grid-cols-1'}`}>
@@ -111,6 +229,9 @@ export function AlbumForm() {
   const [coverPreview, setCoverPreview] = useState<string>('')
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([])
 
+  // Modal de biblioteca
+  const [pickerTarget, setPickerTarget] = useState<'cover' | 'gallery' | null>(null)
+
   useEffect(() => {
     if (!isEdit) return
     supabase.from('albums').select('*').eq('id', id).single().then(({ data }) => {
@@ -140,6 +261,26 @@ export function AlbumForm() {
     const arr = Array.from(files).slice(0, 4)
     setGalleryFiles(arr)
     setGalleryPreviews(arr.map((f) => URL.createObjectURL(f)))
+  }
+
+  function handlePickFromLibrary(urls: string[]) {
+    if (pickerTarget === 'cover') {
+      setCoverFile(null)
+      setCoverPreview(urls[0] ?? '')
+      // Guardar URL directamente en form.images para que no se re-suba
+      setForm((prev) => ({
+        ...prev,
+        images: { cover: urls[0] ?? '', gallery: (prev.images as AlbumImages)?.gallery ?? [] },
+      }))
+    } else if (pickerTarget === 'gallery') {
+      setGalleryFiles([])
+      setGalleryPreviews(urls)
+      setForm((prev) => ({
+        ...prev,
+        images: { cover: (prev.images as AlbumImages)?.cover ?? '', gallery: urls },
+      }))
+    }
+    setPickerTarget(null)
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -288,6 +429,7 @@ export function AlbumForm() {
             label="Portada"
             preview={coverPreview || undefined}
             onFiles={handleCoverFiles}
+            onPickFromLibrary={() => setPickerTarget('cover')}
           />
 
           <DropZone
@@ -295,6 +437,7 @@ export function AlbumForm() {
             preview={galleryPreviews.length ? galleryPreviews : undefined}
             multiple
             onFiles={handleGalleryFiles}
+            onPickFromLibrary={() => setPickerTarget('gallery')}
           />
         </div>
 
@@ -321,6 +464,14 @@ export function AlbumForm() {
           </Button>
         </div>
       </form>
+
+      {pickerTarget && (
+        <MediaPickerModal
+          multiple={pickerTarget === 'gallery'}
+          onConfirm={handlePickFromLibrary}
+          onClose={() => setPickerTarget(null)}
+        />
+      )}
     </div>
   )
 }
