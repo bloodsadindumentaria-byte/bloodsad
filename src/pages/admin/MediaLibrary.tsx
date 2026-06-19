@@ -4,14 +4,51 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import type { MediaItem } from '@/types'
 
-// Sube el archivo crudo directamente — el browser lo streamea sin cargarlo en memoria
-async function uploadMediaFile(file: File): Promise<{ url: string; filename: string }> {
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const path = `media/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-  const { error } = await supabase.storage.from('albums').upload(path, file, { upsert: false })
+// Redimensiona a máx 1200px y convierte a JPEG 0.85
+// Procesa de a una para liberar memoria entre imágenes en iPhone
+function compressImage(file: File): Promise<Blob> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1200
+        let { width, height } = img
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round((height * MAX) / width); width = MAX }
+          else { width = Math.round((width * MAX) / height); height = MAX }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, width, height)
+        canvas.toBlob(
+          (blob) => {
+            canvas.width = 0 // libera memoria
+            resolve(blob ?? file)
+          },
+          'image/jpeg',
+          0.85
+        )
+      }
+      img.onerror = () => resolve(file)
+      img.src = e.target?.result as string
+    }
+    reader.onerror = () => resolve(file)
+    reader.readAsDataURL(file)
+  })
+}
+
+async function uploadOne(file: File): Promise<string> {
+  const blob = await compressImage(file)
+  const path = `media/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+  const { error } = await supabase.storage
+    .from('albums')
+    .upload(path, blob, { upsert: false, contentType: 'image/jpeg' })
   if (error) throw new Error(error.message)
   const { data } = supabase.storage.from('albums').getPublicUrl(path)
-  return { url: data.publicUrl, filename: file.name }
+  return data.publicUrl
 }
 
 async function identifyFromUrl(imageUrl: string): Promise<string> {
@@ -22,7 +59,6 @@ async function identifyFromUrl(imageUrl: string): Promise<string> {
   for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
   const imageBase64 = btoa(binary)
   const mediaType = res.headers.get('content-type') || 'image/jpeg'
-
   const { data, error } = await supabase.functions.invoke('dynamic-action', {
     body: { imageBase64, mediaType },
   })
@@ -35,7 +71,7 @@ export function MediaLibrary() {
   const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number; failed: number } | null>(null)
   const [query, setQuery] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState('')
@@ -59,30 +95,24 @@ export function MediaLibrary() {
     setUploading(true)
     setError(null)
     const arr = Array.from(files).slice(0, 99)
-    setUploadProgress({ done: 0, total: arr.length })
     let done = 0
-    const BATCH = 5
+    let failed = 0
+    setUploadProgress({ done: 0, total: arr.length, failed: 0 })
 
-    try {
-      for (let i = 0; i < arr.length; i += BATCH) {
-        const batch = arr.slice(i, i + BATCH)
-        await Promise.all(
-          batch.map(async (file) => {
-            try {
-              const { url, filename } = await uploadMediaFile(file)
-              await supabase.from('media').insert({ url, filename, label: null })
-            } catch {
-              // un archivo fallido no frena los demás
-            }
-            done++
-            setUploadProgress({ done, total: arr.length })
-          })
-        )
+    // Cola de a 1 para no saturar memoria en iPhone
+    for (const file of arr) {
+      try {
+        const url = await uploadOne(file)
+        await supabase.from('media').insert({ url, filename: file.name, label: null })
+      } catch {
+        failed++
       }
-      await fetchItems()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al subir')
+      done++
+      setUploadProgress({ done, total: arr.length, failed })
     }
+
+    await fetchItems()
+    if (failed > 0) setError(`${failed} imagen${failed > 1 ? 'es' : ''} no se pudo${failed > 1 ? 'eron' : ''} subir.`)
     setUploading(false)
     setUploadProgress(null)
     if (inputRef.current) inputRef.current.value = ''
@@ -101,9 +131,7 @@ export function MediaLibrary() {
 
   async function saveLabel(id: string) {
     await supabase.from('media').update({ label: editingLabel || null }).eq('id', id)
-    setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, label: editingLabel || null } : i))
-    )
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, label: editingLabel || null } : i)))
     setEditingId(null)
   }
 
@@ -115,9 +143,7 @@ export function MediaLibrary() {
         await supabase.from('media').update({ label: name }).eq('id', item.id)
         setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, label: name } : i)))
       }
-    } catch {
-      // silencioso, el usuario puede reintentar
-    }
+    } catch { /* silencioso */ }
     setAnalyzingId(null)
   }
 
@@ -133,9 +159,7 @@ export function MediaLibrary() {
           await supabase.from('media').update({ label: name }).eq('id', item.id)
           setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, label: name } : i)))
         }
-      } catch {
-        // continúa con la siguiente
-      }
+      } catch { /* continúa */ }
     }
     setAnalyzingId(null)
     setAnalyzingAll(false)
@@ -143,8 +167,7 @@ export function MediaLibrary() {
 
   const visibleItems = query.trim()
     ? items.filter((i) =>
-        [i.label ?? '', i.filename]
-          .some((v) => v.toLowerCase().includes(query.toLowerCase()))
+        [i.label ?? '', i.filename].some((v) => v.toLowerCase().includes(query.toLowerCase()))
       )
     : items
 
@@ -157,7 +180,6 @@ export function MediaLibrary() {
     return acc
   }, {})
 
-  // Sin identificar al final
   const groupKeys = Object.keys(grouped).sort((a, b) => {
     if (a === '(sin identificar)') return 1
     if (b === '(sin identificar)') return -1
@@ -182,31 +204,37 @@ export function MediaLibrary() {
         }}
         onClick={() => { if (!uploading) inputRef.current?.click() }}
         className={`border border-dashed rounded-sm p-8 text-center transition-colors duration-200 mb-4 ${
-          uploading ? 'border-[#6B5CE7] cursor-default' : 'border-[#2a2a2a] hover:border-[#6B5CE7] cursor-pointer'
+          uploading
+            ? 'border-[#6B5CE7] cursor-default'
+            : 'border-[#2a2a2a] hover:border-[#6B5CE7] cursor-pointer'
         }`}
       >
         {uploading && uploadProgress ? (
           <div className="space-y-2">
-            <p className="text-[#6B5CE7] text-sm animate-pulse">
-              Subiendo {uploadProgress.done} / {uploadProgress.total}...
+            <p className="text-[#6B5CE7] text-sm">
+              Subiendo {uploadProgress.done} de {uploadProgress.total}
+              {uploadProgress.failed > 0 && (
+                <span className="text-[#c0392b]"> · {uploadProgress.failed} fallidas</span>
+              )}
             </p>
-            <div className="w-full bg-[#2a2a2a] rounded-full h-1">
+            <div className="w-full bg-[#2a2a2a] rounded-full h-1.5">
               <div
-                className="bg-[#6B5CE7] h-1 rounded-full transition-all duration-300"
+                className="bg-[#6B5CE7] h-1.5 rounded-full transition-all duration-200"
                 style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%` }}
               />
             </div>
           </div>
         ) : (
           <>
-            <p className="text-[#888888] text-sm">Arrastrá imágenes acá o hacé click para seleccionar</p>
-            <p className="text-[#444444] text-xs mt-1">Hasta 99 archivos a la vez — sin nombre obligatorio</p>
+            <p className="text-[#888888] text-sm">Tocá para seleccionar imágenes</p>
+            <p className="text-[#444444] text-xs mt-1">Hasta 99 fotos · iPhone compatible</p>
           </>
         )}
         <input
           ref={inputRef}
           type="file"
           accept="image/*"
+          capture="environment"
           multiple
           className="hidden"
           onChange={(e) => { if (e.target.files?.length) handleUpload(e.target.files) }}
@@ -230,9 +258,7 @@ export function MediaLibrary() {
             onClick={analyzeAll}
             className="whitespace-nowrap border-[#6B5CE7] text-[#6B5CE7] hover:bg-[#6B5CE7] hover:text-white"
           >
-            {analyzingAll
-              ? 'Analizando...'
-              : `Analizar todas (${unidentifiedCount})`}
+            {analyzingAll ? 'Analizando...' : `Analizar todas (${unidentifiedCount})`}
           </Button>
         )}
       </div>
@@ -270,6 +296,7 @@ export function MediaLibrary() {
                         src={item.url}
                         alt={item.label ?? item.filename}
                         className="w-full h-full object-cover"
+                        loading="lazy"
                       />
                       {analyzingId === item.id && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
