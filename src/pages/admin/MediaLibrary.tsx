@@ -4,54 +4,11 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import type { MediaItem } from '@/types'
 
-// Lee el archivo como dataURL (funciona con HEIC en iOS)
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-// Comprime via canvas a máx 1000px JPEG — libera memoria explícitamente
-async function compressImage(file: File): Promise<Blob> {
-  const dataUrl = await fileToDataUrl(file)
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.onload = () => {
-      const MAX = 1000
-      let { width, height } = img
-      if (width > MAX || height > MAX) {
-        if (width > height) { height = Math.round((height * MAX) / width); width = MAX }
-        else { width = Math.round((width * MAX) / height); height = MAX }
-      }
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0, width, height)
-      canvas.toBlob(
-        (blob) => {
-          canvas.width = 0  // libera memoria del canvas
-          resolve(blob ?? file)
-        },
-        'image/jpeg',
-        0.78
-      )
-    }
-    img.onerror = () => resolve(file)
-    img.src = dataUrl
-  })
-}
-
+// Sube el archivo crudo directamente — el browser lo streamea sin cargarlo en memoria
 async function uploadMediaFile(file: File): Promise<{ url: string; filename: string }> {
-  const compressed = await compressImage(file)
-  const path = `media/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-  const { error } = await supabase.storage.from('albums').upload(path, compressed, {
-    upsert: false,
-    contentType: 'image/jpeg',
-  })
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const path = `media/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const { error } = await supabase.storage.from('albums').upload(path, file, { upsert: false })
   if (error) throw new Error(error.message)
   const { data } = supabase.storage.from('albums').getPublicUrl(path)
   return { url: data.publicUrl, filename: file.name }
@@ -104,7 +61,7 @@ export function MediaLibrary() {
     const arr = Array.from(files).slice(0, 99)
     setUploadProgress({ done: 0, total: arr.length })
     let done = 0
-    const BATCH = 3
+    const BATCH = 5
 
     try {
       for (let i = 0; i < arr.length; i += BATCH) {
