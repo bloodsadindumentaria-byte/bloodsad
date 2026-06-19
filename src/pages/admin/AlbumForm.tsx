@@ -170,6 +170,8 @@ export function AlbumForm() {
       setUploading(false)
     }
 
+    console.log('[AlbumForm] images a guardar:', JSON.stringify(images, null, 2))
+
     const payload = { ...form, images }
     if (!isEdit) delete payload.id
 
