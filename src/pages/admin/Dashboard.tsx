@@ -20,7 +20,17 @@ export function Dashboard() {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold">{t('admin.dashboard')}</h1>
-        <Button variant="outline" onClick={() => signOut()}>{t('admin.logout')}</Button>
+        <div className="flex items-center gap-4">
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#888888] hover:text-[#6B5CE7] text-sm transition-colors duration-200"
+          >
+            Ver sitio →
+          </a>
+          <Button variant="outline" onClick={() => signOut()}>{t('admin.logout')}</Button>
+        </div>
       </div>
 
       <div className="grid sm:grid-cols-3 gap-4 mb-8">

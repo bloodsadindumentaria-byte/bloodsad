@@ -59,7 +59,15 @@ export function AlbumList() {
                     </Badge>
                   </td>
                   <td className="p-3">
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex gap-2 justify-end items-center">
+                      <a
+                        href={`/album/${album.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#888888] hover:text-[#6B5CE7] text-xs transition-colors duration-200"
+                      >
+                        Ver
+                      </a>
                       <Link
                         to={`/admin/albums/${album.id}/edit`}
                         className={buttonVariants({ variant: 'outline', size: 'sm' })}
