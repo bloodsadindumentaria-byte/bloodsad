@@ -13,97 +13,33 @@ async function uploadMediaFile(file: File): Promise<{ url: string; filename: str
   return { url: data.publicUrl, filename: file.name }
 }
 
-async function identifyAlbum(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer()
+async function identifyFromUrl(imageUrl: string): Promise<string> {
+  const res = await fetch(imageUrl)
+  const buffer = await res.arrayBuffer()
   const bytes = new Uint8Array(buffer)
   let binary = ''
   for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
   const imageBase64 = btoa(binary)
-  const mediaType = file.type || 'image/jpeg'
+  const mediaType = res.headers.get('content-type') || 'image/jpeg'
 
   const { data, error } = await supabase.functions.invoke('dynamic-action', {
     body: { imageBase64, mediaType },
   })
   if (error) throw error
-  return (data as { name: string }).name ?? '?'
-}
-
-// Modal para confirmar / editar nombre detectado por IA
-function CdNameModal({
-  files,
-  onConfirm,
-  onCancel,
-}: {
-  files: FileList
-  onConfirm: (cdName: string) => void
-  onCancel: () => void
-}) {
-  const [name, setName] = useState('')
-  const [detecting, setDetecting] = useState(true)
-
-  useEffect(() => {
-    identifyAlbum(files[0])
-      .then((detected) => setName(detected === '?' ? '' : detected))
-      .catch(() => setName(''))
-      .finally(() => setDetecting(false))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="bg-[#111111] border border-[#2a2a2a] rounded-sm w-full max-w-sm mx-4 p-6 space-y-4">
-        <h2 className="text-[#e0e0e0] font-semibold">¿A qué CD pertenecen estas imágenes?</h2>
-
-        {detecting ? (
-          <p className="text-[#6B5CE7] text-xs animate-pulse">Identificando álbum con IA...</p>
-        ) : name && name !== '?' ? (
-          <p className="text-[#888888] text-xs">
-            IA detectó: <span className="text-[#6B5CE7]">{name}</span> — confirmá o editá abajo.
-          </p>
-        ) : (
-          <p className="text-[#888888] text-xs">
-            No se pudo identificar automáticamente. Escribí el nombre del CD.
-          </p>
-        )}
-
-        <input
-          autoFocus={!detecting}
-          placeholder="Nombre del CD (ej: Reign in Blood)"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && name.trim()) onConfirm(name.trim()) }}
-          className="w-full bg-[#0a0a0a] border border-[#2a2a2a] focus:border-[#6B5CE7] rounded-sm px-3 py-2 text-sm text-[#e0e0e0] outline-none transition-colors disabled:opacity-40"
-          disabled={detecting}
-        />
-
-        <p className="text-[#444444] text-xs">
-          {files.length} archivo{files.length > 1 ? 's' : ''} seleccionado{files.length > 1 ? 's' : ''}
-        </p>
-
-        <div className="flex gap-2">
-          <Button
-            disabled={detecting || !name.trim()}
-            onClick={() => onConfirm(name.trim())}
-            className="flex-1"
-          >
-            Subir imágenes
-          </Button>
-          <Button variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
+  const name = ((data as { name: string }).name ?? '?').trim()
+  return name === '?' ? '' : name
 }
 
 export function MediaLibrary() {
   const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
-  const [pendingFiles, setPendingFiles] = useState<FileList | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
   const [query, setQuery] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState('')
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null)
+  const [analyzingAll, setAnalyzingAll] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -118,25 +54,24 @@ export function MediaLibrary() {
 
   useEffect(() => { fetchItems() }, [])
 
-  function handleFilesSelected(files: FileList) {
-    if (!files.length) return
-    setPendingFiles(files)
-  }
-
-  async function handleUpload(files: FileList, cdName: string) {
-    setPendingFiles(null)
+  async function handleUpload(files: FileList) {
     setUploading(true)
     setError(null)
+    const arr = Array.from(files).slice(0, 99)
+    setUploadProgress({ done: 0, total: arr.length })
     try {
-      for (const file of Array.from(files)) {
-        const { url, filename } = await uploadMediaFile(file)
-        await supabase.from('media').insert({ url, filename, label: cdName })
+      for (let i = 0; i < arr.length; i++) {
+        const { url, filename } = await uploadMediaFile(arr[i])
+        await supabase.from('media').insert({ url, filename, label: null })
+        setUploadProgress({ done: i + 1, total: arr.length })
       }
       await fetchItems()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al subir')
     }
     setUploading(false)
+    setUploadProgress(null)
+    if (inputRef.current) inputRef.current.value = ''
   }
 
   async function handleDelete(item: MediaItem) {
@@ -158,6 +93,40 @@ export function MediaLibrary() {
     setEditingId(null)
   }
 
+  async function analyzeOne(item: MediaItem) {
+    setAnalyzingId(item.id)
+    try {
+      const name = await identifyFromUrl(item.url)
+      if (name) {
+        await supabase.from('media').update({ label: name }).eq('id', item.id)
+        setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, label: name } : i)))
+      }
+    } catch {
+      // silencioso, el usuario puede reintentar
+    }
+    setAnalyzingId(null)
+  }
+
+  async function analyzeAll() {
+    const unidentified = items.filter((i) => !i.label)
+    if (!unidentified.length) return
+    setAnalyzingAll(true)
+    for (const item of unidentified) {
+      setAnalyzingId(item.id)
+      try {
+        const name = await identifyFromUrl(item.url)
+        if (name) {
+          await supabase.from('media').update({ label: name }).eq('id', item.id)
+          setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, label: name } : i)))
+        }
+      } catch {
+        // continúa con la siguiente
+      }
+    }
+    setAnalyzingId(null)
+    setAnalyzingAll(false)
+  }
+
   const visibleItems = query.trim()
     ? items.filter((i) =>
         [i.label ?? '', i.filename]
@@ -165,22 +134,27 @@ export function MediaLibrary() {
       )
     : items
 
-  // Agrupar por CD para mostrar encabezados
+  const unidentifiedCount = items.filter((i) => !i.label).length
+
   const grouped = visibleItems.reduce<Record<string, MediaItem[]>>((acc, item) => {
-    const key = item.label ?? '(sin CD)'
+    const key = item.label ?? '(sin identificar)'
     if (!acc[key]) acc[key] = []
     acc[key].push(item)
     return acc
   }, {})
 
+  // Sin identificar al final
+  const groupKeys = Object.keys(grouped).sort((a, b) => {
+    if (a === '(sin identificar)') return 1
+    if (b === '(sin identificar)') return -1
+    return a.localeCompare(b)
+  })
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#e0e0e0]">Biblioteca de medios</h1>
-        <Link
-          to="/admin"
-          className="text-[#888888] hover:text-[#6B5CE7] text-sm transition-colors"
-        >
+        <Link to="/admin" className="text-[#888888] hover:text-[#6B5CE7] text-sm transition-colors">
           ← Dashboard
         </Link>
       </div>
@@ -190,32 +164,64 @@ export function MediaLibrary() {
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault()
-          if (e.dataTransfer.files.length) handleFilesSelected(e.dataTransfer.files)
+          if (e.dataTransfer.files.length && !uploading) handleUpload(e.dataTransfer.files)
         }}
-        onClick={() => inputRef.current?.click()}
-        className="border border-dashed border-[#2a2a2a] hover:border-[#6B5CE7] rounded-sm p-8 text-center cursor-pointer transition-colors duration-200 mb-6"
+        onClick={() => { if (!uploading) inputRef.current?.click() }}
+        className={`border border-dashed rounded-sm p-8 text-center transition-colors duration-200 mb-4 ${
+          uploading ? 'border-[#6B5CE7] cursor-default' : 'border-[#2a2a2a] hover:border-[#6B5CE7] cursor-pointer'
+        }`}
       >
-        <p className="text-[#888888] text-sm">
-          {uploading ? 'Subiendo...' : 'Arrastrá imágenes acá o hacé click para seleccionar'}
-        </p>
-        <p className="text-[#444444] text-xs mt-1">Se aceptan múltiples archivos a la vez</p>
+        {uploading && uploadProgress ? (
+          <div className="space-y-2">
+            <p className="text-[#6B5CE7] text-sm animate-pulse">
+              Subiendo {uploadProgress.done} / {uploadProgress.total}...
+            </p>
+            <div className="w-full bg-[#2a2a2a] rounded-full h-1">
+              <div
+                className="bg-[#6B5CE7] h-1 rounded-full transition-all duration-300"
+                style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%` }}
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-[#888888] text-sm">Arrastrá imágenes acá o hacé click para seleccionar</p>
+            <p className="text-[#444444] text-xs mt-1">Hasta 99 archivos a la vez — sin nombre obligatorio</p>
+          </>
+        )}
         <input
           ref={inputRef}
           type="file"
           accept="image/*"
           multiple
           className="hidden"
-          onChange={(e) => { if (e.target.files?.length) handleFilesSelected(e.target.files) }}
+          onChange={(e) => { if (e.target.files?.length) handleUpload(e.target.files) }}
         />
       </div>
 
-      <input
-        type="search"
-        placeholder="Buscar por nombre de CD o archivo..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="w-full bg-[#111111] border border-[#2a2a2a] focus:border-[#6B5CE7] rounded-sm px-3 py-2 text-sm text-[#e0e0e0] placeholder-[#555555] outline-none transition-colors mb-4"
-      />
+      {/* Barra de acciones */}
+      <div className="flex items-center gap-3 mb-4">
+        <input
+          type="search"
+          placeholder="Buscar por CD o archivo..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="flex-1 bg-[#111111] border border-[#2a2a2a] focus:border-[#6B5CE7] rounded-sm px-3 py-2 text-sm text-[#e0e0e0] placeholder-[#555555] outline-none transition-colors"
+        />
+        {unidentifiedCount > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={analyzingAll}
+            onClick={analyzeAll}
+            className="whitespace-nowrap border-[#6B5CE7] text-[#6B5CE7] hover:bg-[#6B5CE7] hover:text-white"
+          >
+            {analyzingAll
+              ? 'Analizando...'
+              : `Analizar todas (${unidentifiedCount})`}
+          </Button>
+        )}
+      </div>
 
       {error && <p className="text-sm text-[#c0392b] mb-4">{error}</p>}
 
@@ -227,23 +233,35 @@ export function MediaLibrary() {
         <p className="text-[#888888] text-center py-16">Sin resultados para "{query}"</p>
       ) : (
         <div className="space-y-8">
-          {Object.entries(grouped).map(([cd, cdItems]) => (
+          {groupKeys.map((cd) => (
             <div key={cd}>
-              <p className="text-[#6B5CE7] text-xs uppercase tracking-widest font-semibold mb-3">
+              <p className={`text-xs uppercase tracking-widest font-semibold mb-3 ${
+                cd === '(sin identificar)' ? 'text-[#555555]' : 'text-[#6B5CE7]'
+              }`}>
                 {cd}
+                {cd === '(sin identificar)' && (
+                  <span className="ml-2 normal-case tracking-normal text-[#444444]">
+                    — usá "Analizar todas" para identificarlas con IA
+                  </span>
+                )}
               </p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {cdItems.map((item) => (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {grouped[cd].map((item) => (
                   <div
                     key={item.id}
                     className="bg-[#111111] border border-[#2a2a2a] rounded-sm overflow-hidden hover:border-[#6B5CE7] transition-colors duration-200"
                   >
-                    <div className="aspect-square overflow-hidden bg-[#1a1a1a]">
+                    <div className="relative aspect-square overflow-hidden bg-[#1a1a1a]">
                       <img
                         src={item.url}
                         alt={item.label ?? item.filename}
                         className="w-full h-full object-cover"
                       />
+                      {analyzingId === item.id && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <span className="text-[#6B5CE7] text-xs animate-pulse">Analizando...</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="p-2 space-y-1.5">
@@ -263,21 +281,36 @@ export function MediaLibrary() {
                       ) : (
                         <button
                           onClick={() => startEdit(item)}
-                          className="w-full text-left text-xs text-[#888888] hover:text-[#e0e0e0] truncate transition-colors"
-                          title="Click para cambiar el CD"
+                          className={`w-full text-left text-xs truncate transition-colors ${
+                            item.label
+                              ? 'text-[#888888] hover:text-[#e0e0e0]'
+                              : 'text-[#444444] hover:text-[#888888] italic'
+                          }`}
+                          title="Click para editar"
                         >
-                          {item.filename}
+                          {item.label ?? item.filename}
                         </button>
                       )}
 
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="w-full h-6 text-xs"
-                        onClick={() => handleDelete(item)}
-                      >
-                        Eliminar
-                      </Button>
+                      <div className="flex gap-1">
+                        {!item.label && (
+                          <button
+                            disabled={analyzingId === item.id || analyzingAll}
+                            onClick={() => analyzeOne(item)}
+                            className="flex-1 text-[10px] text-[#6B5CE7] hover:text-white hover:bg-[#6B5CE7] border border-[#6B5CE7] rounded-sm py-0.5 transition-colors disabled:opacity-40"
+                          >
+                            IA
+                          </button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="flex-1 h-5 text-[10px]"
+                          onClick={() => handleDelete(item)}
+                        >
+                          ✕
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -285,14 +318,6 @@ export function MediaLibrary() {
             </div>
           ))}
         </div>
-      )}
-
-      {pendingFiles && (
-        <CdNameModal
-          files={pendingFiles}
-          onConfirm={(cdName) => handleUpload(pendingFiles, cdName)}
-          onCancel={() => { setPendingFiles(null); if (inputRef.current) inputRef.current.value = '' }}
-        />
       )}
     </div>
   )
