@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colores base Blood Sad */
+  --color-bg: #0a0a0a;
+  --color-surface: #111111;
+  --color-border: #2a2a2a;
+  --color-text: #e0e0e0;
+  --color-text-muted: #888888;
+
+  /* Violeta Blood Sad */
+  --color-violet: #6B5CE7;
+  --color-violet-hover: #4a3eb5;
+  --color-violet-dim: rgba(107, 92, 231, 0.12);
+
+  /* Tipografía */
+  --font-display: 'Metal Mania', 'Cinzel Decorative', serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* shadcn tokens — necesarios para los componentes UI */
+  --color-background: #0a0a0a;
+  --color-foreground: #e0e0e0;
+  --color-card: #111111;
+  --color-card-foreground: #e0e0e0;
+  --color-popover: #111111;
+  --color-popover-foreground: #e0e0e0;
+  --color-primary: #6B5CE7;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #1a1a1a;
+  --color-secondary-foreground: #e0e0e0;
+  --color-muted: #1a1a1a;
+  --color-muted-foreground: #888888;
+  --color-accent: #1a1a1a;
+  --color-accent-foreground: #e0e0e0;
+  --color-destructive: #c0392b;
+  --color-destructive-foreground: #ffffff;
+  --color-input: #1a1a1a;
+  --color-ring: #6B5CE7;
+  --radius-base: 0.25rem;
+  --radius: 0.25rem;
+}
+
+/* Reset global */
+*,
+::after,
+::before,
+::backdrop,
+::file-selector-button {
+  border-color: #2a2a2a;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #0a0a0a;
+  color: #e0e0e0;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #6B5CE7; }
+
+/* Selección de texto */
+::selection {
+  background: #6B5CE7;
+  color: #ffffff;
+}
+
+/* Logo display — garantiza Metal Mania sin depender de clases arbitrarias */
+.logo-display {
+  font-family: 'Metal Mania', 'Cinzel Decorative', serif;
+}
