@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+// useRef se mantiene solo para reset del input value
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -160,17 +161,17 @@ export function MediaLibrary() {
         </Link>
       </div>
 
-      {/* Zona de upload */}
-      <div
+      {/* Zona de upload — label nativo para iOS Safari */}
+      <label
+        htmlFor="media-upload"
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault()
           if (e.dataTransfer.files.length && !uploading) handleUpload(e.dataTransfer.files)
         }}
-        onClick={() => { if (!uploading) inputRef.current?.click() }}
-        className={`border border-dashed rounded-sm p-8 text-center transition-colors duration-200 mb-4 ${
+        className={`block border border-dashed rounded-sm p-8 text-center transition-colors duration-200 mb-4 ${
           uploading
-            ? 'border-[#6B5CE7] cursor-default'
+            ? 'border-[#6B5CE7] cursor-default pointer-events-none'
             : 'border-[#2a2a2a] hover:border-[#6B5CE7] cursor-pointer'
         }`}
       >
@@ -195,18 +196,24 @@ export function MediaLibrary() {
         ) : (
           <>
             <p className="text-[#888888] text-sm">Tocá para seleccionar imágenes</p>
-            <p className="text-[#444444] text-xs mt-1">Hasta 99 fotos · iPhone compatible</p>
+            <p className="text-[#444444] text-xs mt-1">Hasta 99 fotos</p>
           </>
         )}
         <input
+          id="media-upload"
           ref={inputRef}
           type="file"
           accept="image/*"
           multiple
           className="hidden"
-          onChange={(e) => { if (e.target.files?.length) handleUpload(e.target.files) }}
+          onChange={(e) => {
+            if (e.target.files?.length) {
+              handleUpload(e.target.files)
+              e.target.value = ''
+            }
+          }}
         />
-      </div>
+      </label>
 
       {/* Barra de acciones */}
       <div className="flex items-center gap-3 mb-4">
