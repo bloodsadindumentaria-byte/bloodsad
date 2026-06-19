@@ -4,14 +4,23 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import type { MediaItem } from '@/types'
 
-// Comprime la imagen a máximo 1200px y calidad 0.82 antes de subir
-async function compressImage(file: File): Promise<Blob> {
+// Lee el archivo como dataURL (funciona con HEIC en iOS)
+function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+// Comprime via canvas a máx 1000px JPEG — libera memoria explícitamente
+async function compressImage(file: File): Promise<Blob> {
+  const dataUrl = await fileToDataUrl(file)
+  return new Promise((resolve) => {
     const img = new Image()
-    const objectUrl = URL.createObjectURL(file)
     img.onload = () => {
-      URL.revokeObjectURL(objectUrl)
-      const MAX = 1200
+      const MAX = 1000
       let { width, height } = img
       if (width > MAX || height > MAX) {
         if (width > height) { height = Math.round((height * MAX) / width); width = MAX }
@@ -22,10 +31,17 @@ async function compressImage(file: File): Promise<Blob> {
       canvas.height = height
       const ctx = canvas.getContext('2d')!
       ctx.drawImage(img, 0, 0, width, height)
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Canvas vacío')), 'image/jpeg', 0.82)
+      canvas.toBlob(
+        (blob) => {
+          canvas.width = 0  // libera memoria del canvas
+          resolve(blob ?? file)
+        },
+        'image/jpeg',
+        0.78
+      )
     }
-    img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file) } // fallback sin comprimir
-    img.src = objectUrl
+    img.onerror = () => resolve(file)
+    img.src = dataUrl
   })
 }
 
@@ -87,11 +103,24 @@ export function MediaLibrary() {
     setError(null)
     const arr = Array.from(files).slice(0, 99)
     setUploadProgress({ done: 0, total: arr.length })
+    let done = 0
+    const BATCH = 3
+
     try {
-      for (let i = 0; i < arr.length; i++) {
-        const { url, filename } = await uploadMediaFile(arr[i])
-        await supabase.from('media').insert({ url, filename, label: null })
-        setUploadProgress({ done: i + 1, total: arr.length })
+      for (let i = 0; i < arr.length; i += BATCH) {
+        const batch = arr.slice(i, i + BATCH)
+        await Promise.all(
+          batch.map(async (file) => {
+            try {
+              const { url, filename } = await uploadMediaFile(file)
+              await supabase.from('media').insert({ url, filename, label: null })
+            } catch {
+              // un archivo fallido no frena los demás
+            }
+            done++
+            setUploadProgress({ done, total: arr.length })
+          })
+        )
       }
       await fetchItems()
     } catch (err) {
