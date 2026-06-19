@@ -13,7 +13,22 @@ async function uploadMediaFile(file: File): Promise<{ url: string; filename: str
   return { url: data.publicUrl, filename: file.name }
 }
 
-// Modal para pedir nombre del CD antes de subir
+async function identifyAlbum(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+  const imageBase64 = btoa(binary)
+  const mediaType = file.type || 'image/jpeg'
+
+  const { data, error } = await supabase.functions.invoke('identify-album', {
+    body: { imageBase64, mediaType },
+  })
+  if (error) throw error
+  return (data as { name: string }).name ?? '?'
+}
+
+// Modal para confirmar / editar nombre detectado por IA
 function CdNameModal({
   files,
   onConfirm,
@@ -24,26 +39,49 @@ function CdNameModal({
   onCancel: () => void
 }) {
   const [name, setName] = useState('')
+  const [detecting, setDetecting] = useState(true)
+
+  useEffect(() => {
+    identifyAlbum(files[0])
+      .then((detected) => setName(detected === '?' ? '' : detected))
+      .catch(() => setName(''))
+      .finally(() => setDetecting(false))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
       <div className="bg-[#111111] border border-[#2a2a2a] rounded-sm w-full max-w-sm mx-4 p-6 space-y-4">
         <h2 className="text-[#e0e0e0] font-semibold">¿A qué CD pertenecen estas imágenes?</h2>
-        <p className="text-[#888888] text-xs">
-          {files.length} archivo{files.length > 1 ? 's' : ''} seleccionado{files.length > 1 ? 's' : ''}.
-          El nombre del CD permite encontrar estas imágenes más rápido al cargar un álbum.
-        </p>
+
+        {detecting ? (
+          <p className="text-[#6B5CE7] text-xs animate-pulse">Identificando álbum con IA...</p>
+        ) : name && name !== '?' ? (
+          <p className="text-[#888888] text-xs">
+            IA detectó: <span className="text-[#6B5CE7]">{name}</span> — confirmá o editá abajo.
+          </p>
+        ) : (
+          <p className="text-[#888888] text-xs">
+            No se pudo identificar automáticamente. Escribí el nombre del CD.
+          </p>
+        )}
+
         <input
-          autoFocus
+          autoFocus={!detecting}
           placeholder="Nombre del CD (ej: Reign in Blood)"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && name.trim()) onConfirm(name.trim()) }}
-          className="w-full bg-[#0a0a0a] border border-[#2a2a2a] focus:border-[#6B5CE7] rounded-sm px-3 py-2 text-sm text-[#e0e0e0] outline-none transition-colors"
+          className="w-full bg-[#0a0a0a] border border-[#2a2a2a] focus:border-[#6B5CE7] rounded-sm px-3 py-2 text-sm text-[#e0e0e0] outline-none transition-colors disabled:opacity-40"
+          disabled={detecting}
         />
+
+        <p className="text-[#444444] text-xs">
+          {files.length} archivo{files.length > 1 ? 's' : ''} seleccionado{files.length > 1 ? 's' : ''}
+        </p>
+
         <div className="flex gap-2">
           <Button
-            disabled={!name.trim()}
+            disabled={detecting || !name.trim()}
             onClick={() => onConfirm(name.trim())}
             className="flex-1"
           >
