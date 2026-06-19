@@ -24,6 +24,9 @@ export function Album() {
   if (loading) return <div className="text-center py-24 text-[#888888]">Cargando...</div>
   if (!album) return <div className="text-center py-24 text-[#888888]">Álbum no encontrado.</div>
 
+  console.log('[Album] data:', album)
+  console.log('[Album] images raw:', album.images)
+
   const images = album.images as AlbumImages | null
   const cover = images?.cover ?? ''
   const gallery = images?.gallery ?? []
