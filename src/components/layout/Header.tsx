@@ -54,7 +54,7 @@ export function Header() {
 
           <Link
             to={session ? '/admin' : '/admin/login'}
-            className="text-[#2a2a2a] hover:text-[#6B5CE7] transition-colors duration-200 text-base leading-none"
+            className="text-[#888888] hover:text-[#6B5CE7] transition-colors duration-200 text-base leading-none"
             title={session ? 'Admin' : 'Login'}
           >
             🔒
