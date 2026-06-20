@@ -205,7 +205,7 @@ export function MediaLibrary() {
           type="file"
           accept="image/*"
           multiple
-          className="hidden"
+          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
           onChange={(e) => {
             if (e.target.files?.length) {
               handleUpload(e.target.files)
