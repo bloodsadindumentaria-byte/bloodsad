@@ -366,11 +366,25 @@ export function AlbumForm() {
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label>Título</Label>
-            <Input value={form.title ?? ''} onChange={(e) => set('title', e.target.value)} required />
+            <Input
+              value={form.title ?? ''}
+              onChange={(e) => {
+                const title = e.target.value
+                const slug = title
+                  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                  .toLowerCase()
+                  .replace(/[^a-z0-9\s-]/g, '')
+                  .trim()
+                  .replace(/\s+/g, '-')
+                setForm((prev) => ({ ...prev, title, slug }))
+              }}
+              required
+            />
           </div>
           <div className="space-y-1">
             <Label>Slug</Label>
-            <Input value={form.slug ?? ''} onChange={(e) => set('slug', e.target.value)} required />
+            <Input value={form.slug ?? ''} onChange={(e) => set('slug', e.target.value)} />
+            <p className="text-[#555555] text-xs">Se genera automático. Editalo si hace falta.</p>
           </div>
         </div>
 
