@@ -17,6 +17,7 @@ export function Artist() {
 
   const bio = i18n.language === 'en' ? artist.bio_en : artist.bio_es
   const artistAlbums = albums.filter((a) => a.artist_id === artist.id)
+  const hasSidebar = !!(bio || artist.image_url || artist.origin || artist.social_links && Object.keys(artist.social_links).length > 0)
 
   return (
     <>
@@ -29,15 +30,22 @@ export function Artist() {
       </Helmet>
 
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="grid md:grid-cols-3 gap-10">
-          <div className="md:col-span-1">
-            <ArtistBio artist={artist} />
+        {hasSidebar ? (
+          <div className="grid md:grid-cols-3 gap-10">
+            <div className="md:col-span-1">
+              <ArtistBio artist={artist} />
+            </div>
+            <div className="md:col-span-2">
+              <h2 className="text-xl font-bold mb-4">{t('artist.discography')}</h2>
+              <CatalogGrid albums={artistAlbums} />
+            </div>
           </div>
-          <div className="md:col-span-2">
-            <h2 className="text-xl font-bold mb-4">{t('artist.discography')}</h2>
+        ) : (
+          <>
+            <h1 className="text-3xl font-bold text-[#e0e0e0] mb-6">{artist.name}</h1>
             <CatalogGrid albums={artistAlbums} />
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </>
   )

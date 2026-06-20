@@ -9,7 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/lib/supabase'
 import { useArtists } from '@/hooks/useArtists'
 import { useGenres } from '@/hooks/useGenres'
+import { ComboCreate } from '@/components/admin/ComboCreate'
 import type { Album, AlbumCondition, AlbumImages, Currency, MediaItem } from '@/types'
+
+function slugify(name: string) {
+  return name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-')
+}
 
 const CONDITIONS: AlbumCondition[] = ['mint', 'near_mint', 'very_good_plus', 'very_good', 'good', 'fair', 'poor']
 const CURRENCIES: Currency[] = ['ARS', 'USD', 'EUR']
@@ -240,8 +246,13 @@ export function AlbumForm() {
   const isEdit = Boolean(id)
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { artists } = useArtists()
-  const { genres } = useGenres()
+  const { artists: initialArtists } = useArtists()
+  const { genres: initialGenres } = useGenres()
+  const [localArtists, setLocalArtists] = useState<{ id: string; name: string }[]>([])
+  const [localGenres, setLocalGenres] = useState<{ id: string; name: string }[]>([])
+
+  const artists = localArtists.length ? localArtists : initialArtists.map((a) => ({ id: a.id, name: a.name }))
+  const genres = localGenres.length ? localGenres : initialGenres.map((g) => ({ id: g.id, name: g.name }))
 
   const [form, setForm] = useState<Partial<Album>>(EMPTY)
   const [saving, setSaving] = useState(false)
@@ -258,6 +269,40 @@ export function AlbumForm() {
 
   // Modal de biblioteca
   const [pickerTarget, setPickerTarget] = useState<'cover' | 'gallery' | null>(null)
+
+  // Sincronizar listas locales cuando cargan los hooks
+  useEffect(() => {
+    if (initialArtists.length) setLocalArtists(initialArtists.map((a) => ({ id: a.id, name: a.name })))
+  }, [initialArtists])
+  useEffect(() => {
+    if (initialGenres.length) setLocalGenres(initialGenres.map((g) => ({ id: g.id, name: g.name })))
+  }, [initialGenres])
+
+  async function createArtist(name: string): Promise<string> {
+    const slug = slugify(name)
+    const { data, error } = await supabase
+      .from('artists')
+      .insert({ name, slug, bio_es: '', bio_en: '', origin: '', genres: [], social_links: {} })
+      .select('id')
+      .single()
+    if (error) throw error
+    const newId = (data as { id: string }).id
+    setLocalArtists((prev) => [...prev, { id: newId, name }])
+    return newId
+  }
+
+  async function createGenre(name: string): Promise<string> {
+    const slug = slugify(name)
+    const { data, error } = await supabase
+      .from('genres')
+      .insert({ name, slug })
+      .select('id')
+      .single()
+    if (error) throw error
+    const newId = (data as { id: string }).id
+    setLocalGenres((prev) => [...prev, { id: newId, name }])
+    return newId
+  }
 
   useEffect(() => {
     if (!isEdit) return
@@ -390,28 +435,20 @@ export function AlbumForm() {
 
         {/* Artista + género */}
         <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <Label>Artista</Label>
-            <Select value={form.artist_id ?? ''} onValueChange={(v: string | null) => set('artist_id', v ?? '')}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                {artists.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label>Género</Label>
-            <Select value={form.genre_id ?? ''} onValueChange={(v: string | null) => set('genre_id', v ?? '')}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                {genres.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <ComboCreate
+            label="Artista"
+            options={artists}
+            selectedId={form.artist_id ?? ''}
+            onSelect={(id) => set('artist_id', id)}
+            onCreate={createArtist}
+          />
+          <ComboCreate
+            label="Género"
+            options={genres}
+            selectedId={form.genre_id ?? ''}
+            onSelect={(id) => set('genre_id', id)}
+            onCreate={createGenre}
+          />
         </div>
 
         {/* Año + precio + moneda */}
