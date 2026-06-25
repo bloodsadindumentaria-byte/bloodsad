@@ -15,7 +15,7 @@ export function Header() {
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
 
         <Link to="/" className="flex items-center hover:opacity-80 transition-opacity duration-200">
-  <img src="/logo.jpg" alt="Roman Wrest Distro" className="h-10 w-auto" />
+  <img src="/logo.png" alt="Roman Wrest Distro" className="h-10 w-auto" />
 </Link>
 
         <nav className="flex items-center gap-6 text-sm">
