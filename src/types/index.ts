@@ -48,6 +48,8 @@ export interface Album {
   artist?: Artist
   year: number
   label: string
+  label_country: string | null
+  format: string | null
   description_es: string
   description_en: string
   tracklist: Track[]

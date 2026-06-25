@@ -14,12 +14,9 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-[#0a0a0a] border-b border-[#2a2a2a]">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
 
-        <Link
-          to="/"
-          className="logo-display text-[#6B5CE7] text-2xl tracking-widest hover:text-[#4a3eb5] transition-colors duration-200"
-        >
-          BLOOD SAD
-        </Link>
+        <Link to="/" className="flex items-center hover:opacity-80 transition-opacity duration-200">
+  <img src="/logo.jpg" alt="Roman Wrest Distro" className="h-10 w-auto" />
+</Link>
 
         <nav className="flex items-center gap-6 text-sm">
           <NavLink

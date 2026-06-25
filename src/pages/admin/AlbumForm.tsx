@@ -22,6 +22,7 @@ const CURRENCIES: Currency[] = ['ARS', 'USD', 'EUR']
 
 const EMPTY: Partial<Album> = {
   title: '', slug: '', year: new Date().getFullYear(), label: '',
+  label_country: '', format: '',
   description_es: '', description_en: '', condition: 'near_mint',
   price: 0, currency: 'ARS', sold: false, images: null, tracklist: [],
 }
@@ -35,7 +36,6 @@ async function uploadImage(file: File, slug: string): Promise<string> {
   return data.publicUrl
 }
 
-// Modal de selección desde biblioteca
 function MediaPickerModal({
   multiple,
   albumTitle,
@@ -59,7 +59,6 @@ function MediaPickerModal({
       .then(({ data }) => {
         const all = (data as MediaItem[]) ?? []
         const title = albumTitle.toLowerCase().trim()
-        // Imágenes del CD que coincide con el título del álbum van primero
         const sorted = title
           ? [
               ...all.filter((i) => i.label?.toLowerCase().trim() === title),
@@ -79,7 +78,7 @@ function MediaPickerModal({
     setSelected((prev) =>
       prev.includes(url)
         ? prev.filter((u) => u !== url)
-        : prev.length < 4
+        : prev.length < 10
         ? [...prev, url]
         : prev
     )
@@ -90,7 +89,7 @@ function MediaPickerModal({
       <div className="bg-[#111111] border border-[#2a2a2a] rounded-sm w-full max-w-3xl mx-4 max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a]">
           <span className="text-[#e0e0e0] font-semibold text-sm">
-            Biblioteca de medios{multiple ? ' — hasta 4' : ' — elegir 1'}
+            Biblioteca de medios{multiple ? ' — hasta 10' : ' — elegir 1'}
           </span>
           <button
             onClick={onClose}
@@ -170,7 +169,6 @@ function MediaPickerModal({
   )
 }
 
-// Área de drop estilizada
 function DropZone({
   label,
   preview,
@@ -226,7 +224,7 @@ function DropZone({
       </button>
 
       {previews.length > 0 && (
-        <div className={`grid gap-1 ${previews.length > 1 ? 'grid-cols-4' : 'grid-cols-1'}`}>
+        <div className={`grid gap-1 ${previews.length > 1 ? 'grid-cols-5' : 'grid-cols-1'}`}>
           {previews.map((src, i) => (
             <img
               key={i}
@@ -259,18 +257,14 @@ export function AlbumForm() {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Archivos pendientes de subir
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [galleryFiles, setGalleryFiles] = useState<File[]>([])
 
-  // Previews locales (object URLs)
   const [coverPreview, setCoverPreview] = useState<string>('')
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([])
 
-  // Modal de biblioteca
   const [pickerTarget, setPickerTarget] = useState<'cover' | 'gallery' | null>(null)
 
-  // Sincronizar listas locales cuando cargan los hooks
   useEffect(() => {
     if (initialArtists.length) setLocalArtists(initialArtists.map((a) => ({ id: a.id, name: a.name })))
   }, [initialArtists])
@@ -311,7 +305,6 @@ export function AlbumForm() {
     })
   }, [id, isEdit])
 
-  // Carga previews desde imágenes existentes al editar
   useEffect(() => {
     const imgs = form.images as AlbumImages | null
     if (imgs && !coverFile) setCoverPreview(imgs.cover ?? '')
@@ -330,7 +323,7 @@ export function AlbumForm() {
   }
 
   function handleGalleryFiles(files: FileList) {
-    const arr = Array.from(files).slice(0, 4)
+    const arr = Array.from(files).slice(0, 10)
     setGalleryFiles(arr)
     setGalleryPreviews(arr.map((f) => URL.createObjectURL(f)))
   }
@@ -339,7 +332,6 @@ export function AlbumForm() {
     if (pickerTarget === 'cover') {
       setCoverFile(null)
       setCoverPreview(urls[0] ?? '')
-      // Guardar URL directamente en form.images para que no se re-suba
       setForm((prev) => ({
         ...prev,
         images: { cover: urls[0] ?? '', gallery: (prev.images as AlbumImages)?.gallery ?? [] },
@@ -363,7 +355,6 @@ export function AlbumForm() {
     const slug = form.slug ?? 'album'
     let images: AlbumImages = (form.images as AlbumImages) ?? { cover: '', gallery: [] }
 
-    // Subir imágenes si hay archivos nuevos
     if (coverFile || galleryFiles.length) {
       setUploading(true)
       try {
@@ -382,8 +373,6 @@ export function AlbumForm() {
       }
       setUploading(false)
     }
-
-    console.log('[AlbumForm] images a guardar:', JSON.stringify(images, null, 2))
 
     const payload = { ...form, images }
     if (!isEdit) delete payload.id
@@ -472,11 +461,30 @@ export function AlbumForm() {
           </div>
         </div>
 
-        {/* Sello + condición */}
+        {/* Sello + país + formato + condición */}
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label>Sello</Label>
             <Input value={form.label ?? ''} onChange={(e) => set('label', e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label>País del sello</Label>
+            <Input
+              value={form.label_country ?? ''}
+              onChange={(e) => set('label_country', e.target.value)}
+              placeholder="Ej: Argentina, Brasil, USA"
+            />
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <Label>Formato</Label>
+            <Input
+              value={form.format ?? ''}
+              onChange={(e) => set('format', e.target.value)}
+              placeholder="Ej: CD, Digipak, CD+DVD, Box Set"
+            />
           </div>
           <div className="space-y-1">
             <Label>Condición</Label>
@@ -511,7 +519,7 @@ export function AlbumForm() {
           />
 
           <DropZone
-            label="Galería (hasta 4 imágenes)"
+            label="Galería (hasta 10 imágenes)"
             preview={galleryPreviews.length ? galleryPreviews : undefined}
             multiple
             onFiles={handleGalleryFiles}
