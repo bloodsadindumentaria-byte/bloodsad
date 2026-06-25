@@ -11,7 +11,7 @@ export function Home() {
   const { albums } = useAlbums()
   const lang = i18n.language
 
-  const title = 'Blood Sad Shop — Discos de metal extremo y raridades'
+  const title = 'Roman Wrest Distro — Discos de metal extremo y raridades'
   const description =
     lang === 'en'
       ? 'Cult records, extreme metal and rarities. Buy online.'
@@ -27,19 +27,19 @@ export function Home() {
         <meta property="og:type" content="website" />
       </Helmet>
 
-      <section className="bg-[#0a0a0a] text-[#e0e0e0] py-24 px-4 text-center border-b border-[#2a2a2a]">
-        <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-[#e0e0e0]">
-          {t('home.hero_title')}
-        </h1>
-        <p className="text-lg md:text-xl text-[#888888] mb-8 max-w-xl mx-auto">
-          {t('home.hero_subtitle')}
-        </p>
-        <Link
-          to="/catalog"
-          className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'border-[#6B5CE7] text-[#6B5CE7] hover:bg-[#6B5CE7] hover:text-white')}
-        >
-          {t('home.browse_catalog')}
-        </Link>
+      <section
+        className="relative w-full h-[70vh] flex items-center justify-center"
+        style={{ backgroundImage: 'url(/banner.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}
+      >
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="relative z-10 text-center">
+          <Link
+            to="/catalog"
+            className={cn(buttonVariants({ size: 'lg' }), 'bg-[#6B5CE7] hover:bg-[#4a3eb5] border-transparent text-white text-lg px-10 py-4')}
+          >
+            {t('home.browse_catalog')}
+          </Link>
+        </div>
       </section>
 
       <section className="max-w-6xl mx-auto px-4 py-12">
