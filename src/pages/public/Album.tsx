@@ -49,7 +49,7 @@ export function Album() {
           to="/catalog"
           className="text-sm text-[#888888] hover:text-[#e0e0e0] transition-colors mb-6 inline-block"
         >
-          ← {t('album.back')}
+          {t('album.back')}
         </Link>
 
         <div className="grid md:grid-cols-2 gap-10">
@@ -195,7 +195,7 @@ export function Album() {
                   to={`/artist/${album.artist.slug}`}
                   className="text-xs text-[#6B5CE7] hover:text-[#4a3eb5] transition-colors inline-block"
                 >
-                  {lang === 'en' ? 'Read more →' : 'Leer más →'}
+                  {lang === 'en' ? 'Read more' : 'Leer mas'}
                 </Link>
               </div>
             )}
