@@ -124,7 +124,7 @@ export function Album() {
             ) : (
               <div className="flex flex-col sm:flex-row gap-2">
                 {WHATSAPP && (
-                  
+                  <a
                     href={buildWhatsAppLink(album.title, WHATSAPP)}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -137,7 +137,7 @@ export function Album() {
                   </a>
                 )}
                 {EMAIL && (
-                  
+                  <a
                     href={buildMailtoLink(album.title, EMAIL)}
                     className={cn(
                       buttonVariants({ variant: 'outline', size: 'lg' }),
@@ -202,3 +202,5 @@ export function Album() {
     </>
   )
 }
+
+
