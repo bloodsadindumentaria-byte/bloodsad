@@ -18,14 +18,10 @@ export function Album() {
   const { t, i18n } = useTranslation()
   const lang = i18n.language as 'es' | 'en'
 
-  // Imagen activa en el visor
   const [activeImg, setActiveImg] = useState<string>('')
 
   if (loading) return <div className="text-center py-24 text-[#888888]">Cargando...</div>
   if (!album) return <div className="text-center py-24 text-[#888888]">Álbum no encontrado.</div>
-
-  console.log('[Album] data:', album)
-  console.log('[Album] images raw:', album.images)
 
   const images = album.images as AlbumImages | null
   const cover = images?.cover ?? ''
@@ -34,6 +30,9 @@ export function Album() {
   const displayImg = activeImg || cover
 
   const description = lang === 'en' ? album.description_en : album.description_es
+  const artistBio = album.artist
+    ? (lang === 'en' ? album.artist.bio_en : album.artist.bio_es)
+    : null
 
   return (
     <>
@@ -56,7 +55,6 @@ export function Album() {
         <div className="grid md:grid-cols-2 gap-10">
           {/* Imágenes */}
           <div className="space-y-2">
-            {/* Portada / imagen activa */}
             {displayImg ? (
               <img
                 src={displayImg}
@@ -69,7 +67,6 @@ export function Album() {
               </div>
             )}
 
-            {/* Thumbnails de galería */}
             {allImages.length > 1 && (
               <div className="grid grid-cols-4 gap-1">
                 {allImages.map((src, i) => (
@@ -129,7 +126,7 @@ export function Album() {
             ) : (
               <div className="flex flex-col sm:flex-row gap-2">
                 {WHATSAPP && (
-                  <a
+                  
                     href={buildWhatsAppLink(album.title, WHATSAPP)}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -142,7 +139,7 @@ export function Album() {
                   </a>
                 )}
                 {EMAIL && (
-                  <a
+                  
                     href={buildMailtoLink(album.title, EMAIL)}
                     className={cn(
                       buttonVariants({ variant: 'outline', size: 'lg' }),
@@ -166,6 +163,40 @@ export function Album() {
                     </li>
                   ))}
                 </ol>
+              </div>
+            )}
+
+            {/* Bloque artista */}
+            {album.artist && (
+              <div className="border border-[#2a2a2a] rounded-sm p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  {album.artist.image_url && (
+                    <img
+                      src={album.artist.image_url}
+                      alt={album.artist.name}
+                      className="w-12 h-12 rounded-full object-cover border border-[#2a2a2a] flex-shrink-0"
+                    />
+                  )}
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#555555]">
+                      {lang === 'en' ? 'About the artist' : 'Sobre el artista'}
+                    </p>
+                    <p className="text-sm font-semibold text-[#e0e0e0]">{album.artist.name}</p>
+                  </div>
+                </div>
+
+                {artistBio && (
+                  <p className="text-sm text-[#888888] leading-relaxed line-clamp-3">
+                    {artistBio}
+                  </p>
+                )}
+
+                <Link
+                  to={`/artist/${album.artist.slug}`}
+                  className="text-xs text-[#6B5CE7] hover:text-[#4a3eb5] transition-colors inline-block"
+                >
+                  {lang === 'en' ? 'Read more →' : 'Leer más →'}
+                </Link>
               </div>
             )}
           </div>
