@@ -21,7 +21,7 @@ export function Album() {
   const [activeImg, setActiveImg] = useState<string>('')
 
   if (loading) return <div className="text-center py-24 text-[#888888]">Cargando...</div>
-  if (!album) return <div className="text-center py-24 text-[#888888]">Álbum no encontrado.</div>
+  if (!album) return <div className="text-center py-24 text-[#888888]">Album no encontrado.</div>
 
   const images = album.images as AlbumImages | null
   const cover = images?.cover ?? ''
@@ -37,9 +37,9 @@ export function Album() {
   return (
     <>
       <Helmet>
-        <title>{album.title} — Blood Sad Shop</title>
+        <title>{album.title} - Blood Sad Shop</title>
         <meta name="description" content={description} />
-        <meta property="og:title" content={`${album.title} — Blood Sad Shop`} />
+        <meta property="og:title" content={`${album.title} - Blood Sad Shop`} />
         <meta property="og:description" content={description} />
         {cover && <meta property="og:image" content={cover} />}
       </Helmet>
@@ -53,7 +53,6 @@ export function Album() {
         </Link>
 
         <div className="grid md:grid-cols-2 gap-10">
-          {/* Imágenes */}
           <div className="space-y-2">
             {displayImg ? (
               <img
@@ -63,7 +62,7 @@ export function Album() {
               />
             ) : (
               <div className="w-full aspect-square bg-[#111111] border border-[#2a2a2a] rounded-sm flex items-center justify-center text-[#2a2a2a] text-6xl">
-                ◈
+                O
               </div>
             )}
 
@@ -86,7 +85,6 @@ export function Album() {
             )}
           </div>
 
-          {/* Info */}
           <div className="space-y-4">
             <div>
               <h1 className="text-3xl font-bold text-[#e0e0e0]">{album.title}</h1>
@@ -166,7 +164,6 @@ export function Album() {
               </div>
             )}
 
-            {/* Bloque artista */}
             {album.artist && (
               <div className="border border-[#2a2a2a] rounded-sm p-4 space-y-3">
                 <div className="flex items-center gap-3">
