@@ -3,8 +3,17 @@ import { useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { CatalogGrid } from '@/components/catalog/CatalogGrid'
+import { LoadingState } from '@/components/ui/loading'
 import { useAlbums } from '@/hooks/useAlbums'
 import { useGenres } from '@/hooks/useGenres'
+import { SITE_NAME } from '@/lib/constants'
+import type { ProductType } from '@/types'
+
+const TYPE_TABS: { value: ProductType | null; key: 'all_types' | 'title_music' | 'title_anime' }[] = [
+  { value: null, key: 'all_types' },
+  { value: 'music', key: 'title_music' },
+  { value: 'anime_dvd', key: 'title_anime' },
+]
 
 export function Catalog() {
   const { t } = useTranslation()
@@ -14,6 +23,7 @@ export function Catalog() {
 
   const [query, setQuery] = useState(searchParams.get('q') ?? '')
   const activeGenre = searchParams.get('genre') ?? null
+  const activeType = (searchParams.get('type') as ProductType | null) ?? null
   const onlyAvailable = searchParams.get('available') !== 'false'
 
   // Sincronizar query con URL con debounce
@@ -38,6 +48,16 @@ export function Catalog() {
     }, { replace: true })
   }
 
+  function setType(type: ProductType | null) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (type) next.set('type', type)
+      else next.delete('type')
+      next.delete('genre')
+      return next
+    }, { replace: true })
+  }
+
   function toggleAvailable() {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
@@ -47,7 +67,11 @@ export function Catalog() {
     }, { replace: true })
   }
 
-  const filtered = albums.filter((a) => {
+  const byType = albums.filter((a) => !activeType || (a.product_type ?? 'music') === activeType)
+  const relevantGenreSlugs = new Set(byType.map((a) => a.genre?.slug).filter(Boolean))
+  const visibleGenres = genres.filter((g) => relevantGenreSlugs.has(g.slug))
+
+  const filtered = byType.filter((a) => {
     if (onlyAvailable && a.sold) return false
     if (activeGenre && a.genre?.slug !== activeGenre) return false
     if (query.trim()) {
@@ -60,23 +84,44 @@ export function Catalog() {
     return true
   })
 
+  const pageTitle = activeType === 'music' ? t('catalog.title_music')
+    : activeType === 'anime_dvd' ? t('catalog.title_anime')
+    : t('catalog.title')
+
   return (
     <>
       <Helmet>
-        <title>{t('catalog.title')} — Blood Sad Shop</title>
-        <meta name="description" content="Explorá nuestro catálogo de discos de metal extremo." />
-        <meta property="og:title" content={`${t('catalog.title')} — Blood Sad Shop`} />
+        <title>{pageTitle} — {SITE_NAME}</title>
+        <meta name="description" content="Explorá nuestro catálogo de discos de metal extremo y DVDs de anime." />
+        <meta property="og:title" content={`${pageTitle} — ${SITE_NAME}`} />
       </Helmet>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">{t('catalog.title')}</h1>
+        <h1 className="text-3xl font-bold mb-6">{pageTitle}</h1>
+
+        {/* Pestañas de tipo de producto */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {TYPE_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setType(tab.value)}
+              className={`px-4 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-sm border transition-colors ${
+                activeType === tab.value
+                  ? 'bg-[#6B5CE7] border-[#6B5CE7] text-white'
+                  : 'border-[#2a2a2a] text-[#888888] hover:border-[#6B5CE7]'
+              }`}
+            >
+              {t(`catalog.${tab.key}`)}
+            </button>
+          ))}
+        </div>
 
         {/* Buscador */}
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por título o artista..."
+          placeholder={t('catalog.search_placeholder')}
           className="w-full bg-[#111111] border border-[#2a2a2a] focus:border-[#6B5CE7] rounded-sm px-4 py-2.5 text-sm text-[#e0e0e0] placeholder-[#555555] outline-none transition-colors mb-4"
         />
 
@@ -91,7 +136,7 @@ export function Catalog() {
                 : 'border-[#2a2a2a] text-[#888888] hover:border-[#6B5CE7]'
             }`}
           >
-            Solo disponibles
+            {t('catalog.only_available')}
           </button>
 
           {/* Separador visual */}
@@ -110,7 +155,7 @@ export function Catalog() {
           </button>
 
           {/* Chips de géneros */}
-          {genres.map((g) => (
+          {visibleGenres.map((g) => (
             <button
               key={g.id}
               onClick={() => setGenre(activeGenre === g.slug ? null : g.slug)}
@@ -125,11 +170,7 @@ export function Catalog() {
           ))}
         </div>
 
-        {loading ? (
-          <div className="text-center py-16 text-[#888888]">Cargando...</div>
-        ) : (
-          <CatalogGrid albums={filtered} />
-        )}
+        {loading ? <LoadingState /> : <CatalogGrid albums={filtered} />}
       </div>
     </>
   )

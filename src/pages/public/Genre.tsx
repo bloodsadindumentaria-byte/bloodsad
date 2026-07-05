@@ -2,8 +2,11 @@ import { useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { CatalogGrid } from '@/components/catalog/CatalogGrid'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { LoadingState } from '@/components/ui/loading'
 import { useAlbums } from '@/hooks/useAlbums'
 import { useGenres } from '@/hooks/useGenres'
+import { SITE_NAME } from '@/lib/constants'
 
 export function Genre() {
   const { slug = '' } = useParams<{ slug: string }>()
@@ -17,14 +20,19 @@ export function Genre() {
   return (
     <>
       <Helmet>
-        <title>{genre?.name ?? slug} — Blood Sad Shop</title>
-        <meta property="og:title" content={`${genre?.name ?? slug} — Blood Sad Shop`} />
+        <title>{genre?.name ?? slug} — {SITE_NAME}</title>
+        <meta property="og:title" content={`${genre?.name ?? slug} — ${SITE_NAME}`} />
       </Helmet>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
+        <Breadcrumbs items={[
+          { label: t('breadcrumbs.home'), to: '/' },
+          { label: t('breadcrumbs.catalog'), to: '/catalog' },
+          { label: genre?.name ?? slug },
+        ]} />
         <h1 className="text-3xl font-bold mb-6">{genre?.name ?? slug}</h1>
         {loading ? (
-          <div className="text-center py-16 text-muted-foreground">Cargando...</div>
+          <LoadingState />
         ) : (
           <CatalogGrid albums={filtered} />
         )}

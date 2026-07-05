@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { SITE_NAME } from '@/lib/constants'
 
 export function Login() {
   const { signIn, session, loading } = useAuth()
@@ -32,9 +33,7 @@ export function Login() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <span className="logo-display text-[#6B5CE7] text-3xl tracking-widest">
-            BLOOD SAD
-          </span>
+          <img src="/logo.png" alt={SITE_NAME} className="h-20 w-auto mx-auto" />
           <p className="text-[#888888] text-sm mt-2">Panel de administración</p>
         </div>
 

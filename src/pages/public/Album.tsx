@@ -4,9 +4,12 @@ import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { LoadingState, NotFoundState } from '@/components/ui/loading'
 import { useAlbum } from '@/hooks/useAlbums'
 import { formatPrice, conditionLabel, buildWhatsAppLink, buildMailtoLink } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { SITE_NAME } from '@/lib/constants'
 import type { AlbumImages } from '@/types'
 
 const WHATSAPP = import.meta.env.VITE_CONTACT_WHATSAPP as string
@@ -20,8 +23,8 @@ export function Album() {
 
   const [activeImg, setActiveImg] = useState<string>('')
 
-  if (loading) return <div className="text-center py-24 text-[#888888]">Cargando...</div>
-  if (!album) return <div className="text-center py-24 text-[#888888]">Album no encontrado.</div>
+  if (loading) return <LoadingState />
+  if (!album) return <NotFoundState message={t('common.not_found')} />
 
   const images = album.images as AlbumImages | null
   const cover = images?.cover ?? ''
@@ -37,20 +40,19 @@ export function Album() {
   return (
     <>
       <Helmet>
-        <title>{album.title} - Blood Sad Shop</title>
+        <title>{album.title} - {SITE_NAME}</title>
         <meta name="description" content={description} />
-        <meta property="og:title" content={`${album.title} - Blood Sad Shop`} />
+        <meta property="og:title" content={`${album.title} - ${SITE_NAME}`} />
         <meta property="og:description" content={description} />
         {cover && <meta property="og:image" content={cover} />}
       </Helmet>
 
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <Link
-          to="/catalog"
-          className="text-sm text-[#888888] hover:text-[#e0e0e0] transition-colors mb-6 inline-block"
-        >
-          {t('album.back')}
-        </Link>
+        <Breadcrumbs items={[
+          { label: t('breadcrumbs.home'), to: '/' },
+          { label: t('breadcrumbs.catalog'), to: '/catalog' },
+          { label: album.title },
+        ]} />
 
         <div className="grid md:grid-cols-2 gap-10">
           <div className="space-y-2">
@@ -176,7 +178,7 @@ export function Album() {
                   )}
                   <div>
                     <p className="text-xs uppercase tracking-widest text-[#555555]">
-                      {lang === 'en' ? 'About the artist' : 'Sobre el artista'}
+                      {t('artist.about')}
                     </p>
                     <p className="text-sm font-semibold text-[#e0e0e0]">{album.artist.name}</p>
                   </div>
@@ -192,7 +194,7 @@ export function Album() {
                   to={`/artist/${album.artist.slug}`}
                   className="text-xs text-[#6B5CE7] hover:text-[#4a3eb5] transition-colors inline-block"
                 >
-                  {lang === 'en' ? 'Read more' : 'Leer mas'}
+                  {t('artist.read_more')} →
                 </Link>
               </div>
             )}

@@ -1,23 +1,25 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { formatPrice, conditionLabel } from '@/lib/utils'
+import { Disc3, Clapperboard } from 'lucide-react'
+import { formatPrice, conditionLabel, buildWhatsAppLink } from '@/lib/utils'
 import type { Album } from '@/types'
 
 interface Props {
   album: Album
 }
 
-const WHATSAPP = '5493576470083'
+const WHATSAPP = import.meta.env.VITE_CONTACT_WHATSAPP as string
 
 export function ProductCard({ album }: Props) {
   const { t, i18n } = useTranslation()
   const lang = i18n.language as 'es' | 'en'
   const cover = album.images?.cover ?? ''
+  const isAnime = album.product_type === 'anime_dvd'
 
   function handleBuy(e: React.MouseEvent) {
     e.preventDefault()
-    const msg = encodeURIComponent(`Hola! Me interesa comprar: ${album.title} - ${album.artist?.name ?? ''}`)
-    window.open(`https://wa.me/${WHATSAPP}?text=${msg}`, '_blank')
+    if (!WHATSAPP) return
+    window.open(buildWhatsAppLink(`${album.title}${album.artist?.name ? ' - ' + album.artist.name : ''}`, WHATSAPP), '_blank')
   }
 
   return (
@@ -43,6 +45,10 @@ export function ProductCard({ album }: Props) {
             </div>
           )}
 
+          <span className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm rounded-sm p-1 text-[#e0e0e0]">
+            {isAnime ? <Clapperboard className="h-3.5 w-3.5" /> : <Disc3 className="h-3.5 w-3.5" />}
+          </span>
+
           {album.sold && (
             <span className="absolute top-2 right-2 bg-[#6B5CE7] text-white text-[10px] font-semibold px-2 py-0.5 uppercase tracking-wider">
               {t('catalog.sold_out')}
@@ -54,7 +60,7 @@ export function ProductCard({ album }: Props) {
         <div className="p-3 space-y-2">
           <div>
             <p className="text-[#888888] text-[10px] uppercase tracking-wider mb-0.5 truncate">
-              {album.artist?.name ?? ''}
+              {album.artist?.name ?? (isAnime ? album.attributes?.studio ?? '' : '')}
             </p>
             <p className="text-[#e0e0e0] text-sm font-medium leading-tight truncate">
               {album.title}
@@ -74,7 +80,7 @@ export function ProductCard({ album }: Props) {
               onClick={handleBuy}
               className="w-full bg-[#6B5CE7] hover:bg-[#4a3eb5] text-white text-xs font-semibold py-2 transition-colors duration-200 uppercase tracking-wider"
             >
-              Comprar
+              {t('album.buy')}
             </button>
           )}
         </div>

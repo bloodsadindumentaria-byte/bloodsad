@@ -6,11 +6,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { supabase } from '@/lib/supabase'
+import { uploadImage } from '@/lib/upload'
+import { DropZone } from '@/components/admin/DropZone'
+import { MediaPickerModal } from '@/components/admin/MediaPickerModal'
 import type { Artist } from '@/types'
 
 const EMPTY: Partial<Artist> = {
   name: '', slug: '', bio_es: '', bio_en: '', origin: '',
-  genres: [], social_links: {}, image_url: '',
+  genres: [], social_links: {}, image_url: '', gallery: [],
 }
 
 export function ArtistForm() {
@@ -20,12 +23,23 @@ export function ArtistForm() {
   const { t } = useTranslation()
   const [form, setForm] = useState<Partial<Artist>>(EMPTY)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([])
+  const [coverPreview, setCoverPreview] = useState('')
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([])
+  const [pickerTarget, setPickerTarget] = useState<'cover' | 'gallery' | null>(null)
 
   useEffect(() => {
     if (!isEdit) return
     supabase.from('artists').select('*').eq('id', id).single().then(({ data }) => {
-      if (data) setForm(data as Artist)
+      if (!data) return
+      const loaded = data as Artist
+      setForm(loaded)
+      setCoverPreview(loaded.image_url ?? '')
+      setGalleryPreviews(loaded.gallery ?? [])
     })
   }, [id, isEdit])
 
@@ -33,11 +47,58 @@ export function ArtistForm() {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
+  function handleCoverFiles(files: FileList) {
+    const file = files[0]
+    if (!file) return
+    setCoverFile(file)
+    setCoverPreview(URL.createObjectURL(file))
+  }
+
+  function handleGalleryFiles(files: FileList) {
+    const arr = Array.from(files).slice(0, 10)
+    setGalleryFiles(arr)
+    setGalleryPreviews(arr.map((f) => URL.createObjectURL(f)))
+  }
+
+  function handlePickFromLibrary(urls: string[]) {
+    if (pickerTarget === 'cover') {
+      setCoverFile(null)
+      setCoverPreview(urls[0] ?? '')
+      set('image_url', urls[0] ?? '')
+    } else if (pickerTarget === 'gallery') {
+      setGalleryFiles([])
+      setGalleryPreviews(urls)
+      set('gallery', urls)
+    }
+    setPickerTarget(null)
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setSaving(true)
     setError(null)
-    const payload = { ...form }
+
+    const folder = `artists/${form.slug ?? 'artist'}`
+    let imageUrl = form.image_url ?? ''
+    let gallery = form.gallery ?? []
+
+    if (coverFile || galleryFiles.length) {
+      setUploading(true)
+      try {
+        if (coverFile) imageUrl = await uploadImage(coverFile, folder)
+        if (galleryFiles.length) {
+          gallery = await Promise.all(galleryFiles.map((f) => uploadImage(f, folder)))
+        }
+      } catch (err) {
+        setError(`Error al subir imágenes: ${err instanceof Error ? err.message : 'desconocido'}`)
+        setSaving(false)
+        setUploading(false)
+        return
+      }
+      setUploading(false)
+    }
+
+    const payload = { ...form, image_url: imageUrl, gallery }
     if (!isEdit) delete payload.id
 
     const { error } = isEdit
@@ -48,6 +109,8 @@ export function ArtistForm() {
     else navigate('/admin/artists')
     setSaving(false)
   }
+
+  const statusLabel = uploading ? 'Subiendo imágenes...' : saving ? 'Guardando...' : t('admin.save')
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -72,9 +135,23 @@ export function ArtistForm() {
           <Input value={form.origin ?? ''} onChange={(e) => set('origin', e.target.value)} />
         </div>
 
-        <div className="space-y-1">
-          <Label>Imagen (URL)</Label>
-          <Input value={form.image_url ?? ''} onChange={(e) => set('image_url', e.target.value)} />
+        <div className="border border-[#2a2a2a] rounded-sm p-4 space-y-4">
+          <p className="text-[#888888] text-xs uppercase tracking-wider">Imágenes</p>
+
+          <DropZone
+            label="Foto principal"
+            preview={coverPreview || undefined}
+            onFiles={handleCoverFiles}
+            onPickFromLibrary={() => setPickerTarget('cover')}
+          />
+
+          <DropZone
+            label="Galería (hasta 10 imágenes)"
+            preview={galleryPreviews.length ? galleryPreviews : undefined}
+            multiple
+            onFiles={handleGalleryFiles}
+            onPickFromLibrary={() => setPickerTarget('gallery')}
+          />
         </div>
 
         <div className="space-y-1">
@@ -113,14 +190,23 @@ export function ArtistForm() {
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Guardando...' : t('admin.save')}
+          <Button type="submit" disabled={saving || uploading}>
+            {statusLabel}
           </Button>
           <Button type="button" variant="outline" onClick={() => navigate('/admin/artists')}>
             {t('admin.cancel')}
           </Button>
         </div>
       </form>
+
+      {pickerTarget && (
+        <MediaPickerModal
+          multiple={pickerTarget === 'gallery'}
+          titleHint={form.name ?? ''}
+          onConfirm={handlePickFromLibrary}
+          onClose={() => setPickerTarget(null)}
+        />
+      )}
     </div>
   )
 }

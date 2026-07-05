@@ -1,4 +1,4 @@
--- Blood Sad Shop — Supabase Schema
+-- Roman Wrest Distro — Supabase Schema
 -- Run this in your Supabase SQL Editor
 
 -- Enable UUID extension
@@ -25,7 +25,8 @@ create table if not exists artists (
   origin       text default '',
   genres       text[] default '{}',
   social_links jsonb default '{}',
-  image_url    text
+  image_url    text,
+  gallery      jsonb default '[]'
 );
 
 -- ────────────────────────────────────────────
@@ -38,6 +39,8 @@ create table if not exists albums (
   artist_id      uuid references artists(id) on delete set null,
   year           integer,
   label          text default '',
+  label_country  text default '',
+  format         text default '',
   description_es text default '',
   description_en text default '',
   tracklist      jsonb default '[]',
@@ -47,6 +50,8 @@ create table if not exists albums (
   sold           boolean not null default false,
   images         jsonb default '[]',
   genre_id       uuid references genres(id) on delete set null,
+  product_type   text not null default 'music' check (product_type in ('music','anime_dvd')),
+  attributes     jsonb default '{}',
   created_at     timestamptz default now()
 );
 

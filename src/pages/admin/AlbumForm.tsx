@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -7,10 +7,14 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase'
+import { uploadImage } from '@/lib/upload'
 import { useArtists } from '@/hooks/useArtists'
 import { useGenres } from '@/hooks/useGenres'
 import { ComboCreate } from '@/components/admin/ComboCreate'
-import type { Album, AlbumCondition, AlbumImages, Currency, MediaItem } from '@/types'
+import { DropZone } from '@/components/admin/DropZone'
+import { MediaPickerModal } from '@/components/admin/MediaPickerModal'
+import { PRODUCT_TYPES, PRODUCT_TYPE_META } from '@/lib/constants'
+import type { Album, AlbumCondition, AlbumImages, Currency, ProductAttributes, ProductType } from '@/types'
 
 function slugify(name: string) {
   return name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -25,218 +29,7 @@ const EMPTY: Partial<Album> = {
   label_country: '', format: '',
   description_es: '', description_en: '', condition: 'near_mint',
   price: 0, currency: 'ARS', sold: false, images: null, tracklist: [],
-}
-
-async function uploadImage(file: File, slug: string): Promise<string> {
-  const ext = file.name.split('.').pop()
-  const path = `${slug}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-  const { error } = await supabase.storage.from('albums').upload(path, file, { upsert: true })
-  if (error) throw new Error(error.message)
-  const { data } = supabase.storage.from('albums').getPublicUrl(path)
-  return data.publicUrl
-}
-
-function MediaPickerModal({
-  multiple,
-  albumTitle,
-  onConfirm,
-  onClose,
-}: {
-  multiple: boolean
-  albumTitle: string
-  onConfirm: (urls: string[]) => void
-  onClose: () => void
-}) {
-  const [items, setItems] = useState<MediaItem[]>([])
-  const [selected, setSelected] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    supabase
-      .from('media')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        const all = (data as MediaItem[]) ?? []
-        const title = albumTitle.toLowerCase().trim()
-        const sorted = title
-          ? [
-              ...all.filter((i) => i.label?.toLowerCase().trim() === title),
-              ...all.filter((i) => i.label?.toLowerCase().trim() !== title),
-            ]
-          : all
-        setItems(sorted)
-        setLoading(false)
-      })
-  }, [albumTitle])
-
-  function toggle(url: string) {
-    if (!multiple) {
-      setSelected([url])
-      return
-    }
-    setSelected((prev) =>
-      prev.includes(url)
-        ? prev.filter((u) => u !== url)
-        : prev.length < 10
-        ? [...prev, url]
-        : prev
-    )
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="bg-[#111111] border border-[#2a2a2a] rounded-sm w-full max-w-3xl mx-4 max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a]">
-          <span className="text-[#e0e0e0] font-semibold text-sm">
-            Biblioteca de medios{multiple ? ' — hasta 10' : ' — elegir 1'}
-          </span>
-          <button
-            onClick={onClose}
-            className="text-[#888888] hover:text-[#e0e0e0] text-lg leading-none"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="overflow-y-auto flex-1 p-3">
-          {!loading && albumTitle && items.some((i) => i.label?.toLowerCase().trim() === albumTitle.toLowerCase().trim()) && (
-            <p className="text-[#6B5CE7] text-xs mb-3 uppercase tracking-wider">
-              ↑ Imágenes de "{albumTitle}" al inicio
-            </p>
-          )}
-          {loading ? (
-            <p className="text-[#888888] text-center py-8">Cargando...</p>
-          ) : items.length === 0 ? (
-            <p className="text-[#888888] text-center py-8">
-              No hay imágenes en la biblioteca todavía.
-            </p>
-          ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {items.map((item) => {
-                const isSelected = selected.includes(item.url)
-                const isMatch = albumTitle
-                  ? item.label?.toLowerCase().trim() === albumTitle.toLowerCase().trim()
-                  : false
-                return (
-                  <div key={item.id} className="space-y-0.5">
-                    <button
-                      onClick={() => toggle(item.url)}
-                      className={`relative w-full aspect-square overflow-hidden rounded-sm border-2 transition-all duration-150 ${
-                        isSelected
-                          ? 'border-[#6B5CE7] shadow-[0_0_8px_rgba(107,92,231,0.5)]'
-                          : isMatch
-                          ? 'border-[#6B5CE7]/40 hover:border-[#6B5CE7]'
-                          : 'border-[#2a2a2a] hover:border-[#6B5CE7]'
-                      }`}
-                    >
-                      <img
-                        src={item.url}
-                        alt={item.label ?? item.filename}
-                        className="w-full h-full object-cover"
-                      />
-                      {isSelected && (
-                        <div className="absolute inset-0 bg-[rgba(107,92,231,0.3)] flex items-center justify-center">
-                          <span className="text-white font-bold text-lg">✓</span>
-                        </div>
-                      )}
-                    </button>
-                    {item.label && (
-                      <p className={`text-[10px] truncate text-center ${isMatch ? 'text-[#6B5CE7]' : 'text-[#555555]'}`}>
-                        {item.label}
-                      </p>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-2 px-4 py-3 border-t border-[#2a2a2a]">
-          <Button
-            disabled={selected.length === 0}
-            onClick={() => onConfirm(selected)}
-          >
-            Confirmar selección{selected.length > 0 ? ` (${selected.length})` : ''}
-          </Button>
-          <Button variant="outline" onClick={onClose}>
-            Cancelar
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function DropZone({
-  label,
-  preview,
-  multiple = false,
-  onFiles,
-  onPickFromLibrary,
-}: {
-  label: string
-  preview?: string | string[]
-  multiple?: boolean
-  onFiles: (files: FileList) => void
-  onPickFromLibrary: () => void
-}) {
-  const ref = useRef<HTMLInputElement>(null)
-  const [dragging, setDragging] = useState(false)
-
-  const previews = Array.isArray(preview) ? preview : preview ? [preview] : []
-
-  return (
-    <div className="space-y-2">
-      <span className="block text-[#888888] text-xs uppercase tracking-wider">{label}</span>
-
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files.length) onFiles(e.dataTransfer.files) }}
-        onClick={() => ref.current?.click()}
-        className={`
-          border border-dashed rounded-sm p-4 text-center cursor-pointer
-          transition-colors duration-200
-          ${dragging ? 'border-[#6B5CE7] bg-[rgba(107,92,231,0.08)]' : 'border-[#2a2a2a] hover:border-[#6B5CE7]'}
-        `}
-      >
-        <p className="text-[#888888] text-xs">
-          {previews.length ? 'Cambiar imagen' : 'Arrastrá o hacé click para subir'}
-        </p>
-        <input
-          ref={ref}
-          type="file"
-          accept="image/*"
-          multiple={multiple}
-          className="hidden"
-          onChange={(e) => { if (e.target.files?.length) onFiles(e.target.files) }}
-        />
-      </div>
-
-      <button
-        type="button"
-        onClick={onPickFromLibrary}
-        className="text-xs text-[#6B5CE7] hover:text-[#4a3eb5] transition-colors underline underline-offset-2"
-      >
-        Elegir de biblioteca →
-      </button>
-
-      {previews.length > 0 && (
-        <div className={`grid gap-1 ${previews.length > 1 ? 'grid-cols-5' : 'grid-cols-1'}`}>
-          {previews.map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={`preview ${i + 1}`}
-              className="aspect-square object-cover rounded-sm border border-[#2a2a2a]"
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  )
+  product_type: 'music', attributes: null,
 }
 
 export function AlbumForm() {
@@ -315,6 +108,12 @@ export function AlbumForm() {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
+  function setAttr<K extends keyof ProductAttributes>(key: K, value: ProductAttributes[K]) {
+    setForm((prev) => ({ ...prev, attributes: { ...(prev.attributes ?? {}), [key]: value } }))
+  }
+
+  const isAnime = form.product_type === 'anime_dvd'
+
   function handleCoverFiles(files: FileList) {
     const file = files[0]
     if (!file) return
@@ -374,7 +173,8 @@ export function AlbumForm() {
       setUploading(false)
     }
 
-    const payload = { ...form, images }
+    const payload: Partial<Album> = { ...form, images }
+    if (isAnime) payload.artist_id = null as unknown as string
     if (!isEdit) delete payload.id
 
     const { error: dbError } = isEdit
@@ -391,10 +191,30 @@ export function AlbumForm() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">
-        {isEdit ? t('admin.edit') : t('admin.new')} álbum
+        {isEdit ? t('admin.edit') : t('admin.new')} {PRODUCT_TYPE_META[form.product_type ?? 'music'].label.es.toLowerCase()}
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+
+        {/* Tipo de producto */}
+        <div className="space-y-1">
+          <Label>Tipo de producto</Label>
+          <Select
+            value={form.product_type ?? 'music'}
+            onValueChange={(v: string | null) => {
+              if (!v) return
+              const type = v as ProductType
+              setForm((prev) => ({ ...prev, product_type: type, artist_id: type === 'anime_dvd' ? undefined : prev.artist_id }))
+            }}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {PRODUCT_TYPES.map((pt) => (
+                <SelectItem key={pt} value={pt}>{PRODUCT_TYPE_META[pt].label.es}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Título + slug */}
         <div className="grid sm:grid-cols-2 gap-4">
@@ -424,13 +244,15 @@ export function AlbumForm() {
 
         {/* Artista + género */}
         <div className="grid sm:grid-cols-2 gap-4">
-          <ComboCreate
-            label="Artista"
-            options={artists}
-            selectedId={form.artist_id ?? ''}
-            onSelect={(id) => set('artist_id', id)}
-            onCreate={createArtist}
-          />
+          {!isAnime && (
+            <ComboCreate
+              label="Artista"
+              options={artists}
+              selectedId={form.artist_id ?? ''}
+              onSelect={(id) => set('artist_id', id)}
+              onCreate={createArtist}
+            />
+          )}
           <ComboCreate
             label="Género"
             options={genres}
@@ -439,6 +261,44 @@ export function AlbumForm() {
             onCreate={createGenre}
           />
         </div>
+
+        {/* Campos específicos de anime */}
+        {isAnime && (
+          <div className="border border-[#2a2a2a] rounded-sm p-4 grid sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label>Estudio</Label>
+              <Input
+                value={form.attributes?.studio ?? ''}
+                onChange={(e) => setAttr('studio', e.target.value)}
+                placeholder="Ej: Madhouse, MAPPA"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Episodios</Label>
+              <Input
+                type="number"
+                value={form.attributes?.episodes ?? ''}
+                onChange={(e) => setAttr('episodes', e.target.value ? Number(e.target.value) : undefined)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Audio</Label>
+              <Input
+                value={form.attributes?.audio ?? ''}
+                onChange={(e) => setAttr('audio', e.target.value)}
+                placeholder="Ej: Japonés, Español Latino"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Subtítulos</Label>
+              <Input
+                value={form.attributes?.subtitles ?? ''}
+                onChange={(e) => setAttr('subtitles', e.target.value)}
+                placeholder="Ej: Español"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Año + precio + moneda */}
         <div className="grid sm:grid-cols-3 gap-4">
@@ -554,7 +414,7 @@ export function AlbumForm() {
       {pickerTarget && (
         <MediaPickerModal
           multiple={pickerTarget === 'gallery'}
-          albumTitle={form.title ?? ''}
+          titleHint={form.title ?? ''}
           onConfirm={handlePickFromLibrary}
           onClose={() => setPickerTarget(null)}
         />

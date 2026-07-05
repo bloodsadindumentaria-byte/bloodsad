@@ -23,11 +23,20 @@ export interface Artist {
   genres: string[]
   social_links: SocialLinks
   image_url: string | null
+  gallery?: string[]
 }
 
 export type AlbumCondition = 'mint' | 'near_mint' | 'very_good_plus' | 'very_good' | 'good' | 'fair' | 'poor'
 export type Currency = 'ARS' | 'USD' | 'EUR'
 export type OrderStatus = 'pending' | 'paid' | 'shipped' | 'cancelled'
+export type ProductType = 'music' | 'anime_dvd'
+
+export interface ProductAttributes {
+  episodes?: number
+  audio?: string
+  subtitles?: string
+  studio?: string
+}
 
 export interface Track {
   position: string
@@ -60,6 +69,8 @@ export interface Album {
   images: AlbumImages | null
   genre_id: string
   genre?: Genre
+  product_type: ProductType
+  attributes: ProductAttributes | null
   created_at: string
 }
 

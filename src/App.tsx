@@ -9,6 +9,7 @@ import { Home } from '@/pages/public/Home'
 import { Catalog } from '@/pages/public/Catalog'
 import { Album } from '@/pages/public/Album'
 import { Artist } from '@/pages/public/Artist'
+import { Artists } from '@/pages/public/Artists'
 import { Genre } from '@/pages/public/Genre'
 
 import { Login } from '@/pages/admin/Login'
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/album/:slug" element={<Album />} />
+            <Route path="/artists" element={<Artists />} />
             <Route path="/artist/:slug" element={<Artist />} />
             <Route path="/genre/:slug" element={<Genre />} />
           </Route>
