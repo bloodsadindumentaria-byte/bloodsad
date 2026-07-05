@@ -6,12 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/useAuth'
 import { useAlbums } from '@/hooks/useAlbums'
 import { useArtists } from '@/hooks/useArtists'
+import { useReels } from '@/hooks/useReels'
 
 export function Dashboard() {
   const { t } = useTranslation()
   const { signOut } = useAuth()
   const { albums } = useAlbums()
   const { artists } = useArtists()
+  const { reels } = useReels()
 
   const soldCount = albums.filter((a) => a.sold).length
   const availableCount = albums.filter((a) => !a.sold).length
@@ -102,6 +104,22 @@ export function Dashboard() {
             <div className="flex gap-2">
               <Link to="/admin/media" className={buttonVariants({ size: 'sm' })}>
                 Abrir biblioteca
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold">Reels de Instagram</h2>
+              <span className="text-muted-foreground text-sm">{reels.length} total</span>
+            </div>
+            <div className="flex gap-2">
+              <Link to="/admin/reels" className={buttonVariants({ size: 'sm' })}>
+                Reels
+              </Link>
+              <Link to="/admin/reels/new" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                {t('admin.new')}
               </Link>
             </div>
           </CardContent>

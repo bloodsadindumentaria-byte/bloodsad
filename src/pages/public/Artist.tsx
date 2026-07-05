@@ -8,12 +8,15 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { LoadingState, NotFoundState } from '@/components/ui/loading'
 import { useArtist } from '@/hooks/useArtists'
 import { useAlbums } from '@/hooks/useAlbums'
+import { useReels } from '@/hooks/useReels'
+import { ReelsCarousel } from '@/components/reels/ReelsCarousel'
 import { SITE_NAME } from '@/lib/constants'
 
 export function Artist() {
   const { slug = '' } = useParams<{ slug: string }>()
   const { artist, loading } = useArtist(slug)
   const { albums } = useAlbums()
+  const { reels } = useReels({ artistId: artist?.id })
   const { t, i18n } = useTranslation()
   const [activeGalleryImg, setActiveGalleryImg] = useState<string | null>(null)
 
@@ -78,6 +81,13 @@ export function Artist() {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {reels.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold mb-4">{t('reels.title')}</h2>
+                <ReelsCarousel reels={reels} />
               </div>
             )}
           </div>

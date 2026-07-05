@@ -7,6 +7,8 @@ import { buttonVariants } from '@/components/ui/button'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { LoadingState, NotFoundState } from '@/components/ui/loading'
 import { useAlbum } from '@/hooks/useAlbums'
+import { useReels } from '@/hooks/useReels'
+import { ReelsCarousel } from '@/components/reels/ReelsCarousel'
 import { formatPrice, conditionLabel, buildWhatsAppLink, buildMailtoLink } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { SITE_NAME, countryFlag } from '@/lib/constants'
@@ -18,6 +20,7 @@ const EMAIL = import.meta.env.VITE_CONTACT_EMAIL as string
 export function Album() {
   const { slug = '' } = useParams<{ slug: string }>()
   const { album, loading } = useAlbum(slug)
+  const { reels } = useReels({ albumId: album?.id })
   const { t, i18n } = useTranslation()
   const lang = i18n.language as 'es' | 'en'
 
@@ -116,6 +119,13 @@ export function Album() {
                 >
                   {t('artist.read_more')} →
                 </Link>
+              </div>
+            )}
+
+            {reels.length > 0 && (
+              <div>
+                <h2 className="font-semibold text-sm mb-2 text-[#e0e0e0] uppercase tracking-wider">{t('reels.title')}</h2>
+                <ReelsCarousel reels={reels} />
               </div>
             )}
           </div>

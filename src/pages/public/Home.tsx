@@ -7,6 +7,8 @@ import { ArtistCard } from '@/components/artist/ArtistCard'
 import { useAlbums } from '@/hooks/useAlbums'
 import { useArtists } from '@/hooks/useArtists'
 import { useGenres } from '@/hooks/useGenres'
+import { useReels } from '@/hooks/useReels'
+import { ReelsCarousel } from '@/components/reels/ReelsCarousel'
 import { cn } from '@/lib/utils'
 import { SITE_NAME } from '@/lib/constants'
 
@@ -15,6 +17,7 @@ export function Home() {
   const { albums } = useAlbums()
   const { artists } = useArtists()
   const { genres } = useGenres()
+  const { reels } = useReels()
   const lang = i18n.language
 
   const latestAlbums = [...albums]
@@ -120,6 +123,14 @@ export function Home() {
               <ArtistCard key={artist.id} artist={artist} />
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Reels de Instagram */}
+      {reels.length > 0 && (
+        <section className="max-w-6xl mx-auto px-4 py-10">
+          <h2 className="text-xl font-bold mb-6">{t('reels.title')}</h2>
+          <ReelsCarousel reels={reels} />
         </section>
       )}
     </>

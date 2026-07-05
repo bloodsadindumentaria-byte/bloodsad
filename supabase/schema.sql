@@ -64,6 +64,20 @@ create table if not exists album_genres (
 );
 
 -- ────────────────────────────────────────────
+-- REELS (Instagram, vinculados opcionalmente a un álbum y/o artista)
+-- ────────────────────────────────────────────
+create table if not exists reels (
+  id            uuid primary key default gen_random_uuid(),
+  instagram_url text not null,
+  album_id      uuid references albums(id) on delete set null,
+  artist_id     uuid references artists(id) on delete set null,
+  views         integer,
+  likes         integer,
+  sort_order    integer not null default 0,
+  created_at    timestamptz default now()
+);
+
+-- ────────────────────────────────────────────
 -- ORDERS
 -- ────────────────────────────────────────────
 create table if not exists orders (
@@ -85,18 +99,21 @@ alter table genres        enable row level security;
 alter table artists       enable row level security;
 alter table albums        enable row level security;
 alter table album_genres  enable row level security;
+alter table reels         enable row level security;
 alter table orders        enable row level security;
 
 create policy "Public read genres"       on genres        for select using (true);
 create policy "Public read artists"      on artists       for select using (true);
 create policy "Public read albums"       on albums        for select using (true);
 create policy "Public read album_genres" on album_genres  for select using (true);
+create policy "Public read reels"        on reels         for select using (true);
 
 -- Authenticated users can manage everything (admin)
 create policy "Auth manage genres"       on genres        for all using (auth.role() = 'authenticated');
 create policy "Auth manage artists"      on artists       for all using (auth.role() = 'authenticated');
 create policy "Auth manage albums"       on albums        for all using (auth.role() = 'authenticated');
 create policy "Auth manage album_genres" on album_genres  for all using (auth.role() = 'authenticated');
+create policy "Auth manage reels"        on reels         for all using (auth.role() = 'authenticated');
 create policy "Auth manage orders"       on orders        for all using (auth.role() = 'authenticated');
 
 -- ────────────────────────────────────────────

@@ -91,3 +91,16 @@ export interface Order {
   status: OrderStatus
   created_at: string
 }
+
+export interface Reel {
+  id: string
+  instagram_url: string
+  album_id: string | null
+  artist_id: string | null
+  views: number | null
+  likes: number | null
+  sort_order: number
+  created_at: string
+  album?: Pick<Album, 'id' | 'title' | 'slug'>
+  artist?: Pick<Artist, 'id' | 'name' | 'slug'>
+}

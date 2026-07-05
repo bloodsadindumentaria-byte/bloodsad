@@ -100,6 +100,11 @@ const resources = {
         rights: 'Todos los derechos reservados.',
         location: 'Córdoba Capital, Argentina · Envíos por Correo Argentino',
       },
+      reels: {
+        title: 'Seguinos en Instagram',
+        view_on_instagram: 'Ver en Instagram',
+        follow_on_instagram: 'Seguir en Instagram',
+      },
     },
   },
   en: {
@@ -199,6 +204,11 @@ const resources = {
       footer: {
         rights: 'All rights reserved.',
         location: 'Córdoba Capital, Argentina · Shipping via Correo Argentino',
+      },
+      reels: {
+        title: 'Follow us on Instagram',
+        view_on_instagram: 'View on Instagram',
+        follow_on_instagram: 'Follow on Instagram',
       },
     },
   },

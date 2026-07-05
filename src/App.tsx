@@ -18,6 +18,8 @@ import { AlbumList } from '@/pages/admin/AlbumList'
 import { AlbumForm } from '@/pages/admin/AlbumForm'
 import { ArtistList } from '@/pages/admin/ArtistList'
 import { ArtistForm } from '@/pages/admin/ArtistForm'
+import { ReelList } from '@/pages/admin/ReelList'
+import { ReelForm } from '@/pages/admin/ReelForm'
 import { MediaLibrary } from '@/pages/admin/MediaLibrary'
 
 export default function App() {
@@ -47,6 +49,9 @@ export default function App() {
             <Route path="/admin/artists" element={<ArtistList />} />
             <Route path="/admin/artists/new" element={<ArtistForm />} />
             <Route path="/admin/artists/:id/edit" element={<ArtistForm />} />
+            <Route path="/admin/reels" element={<ReelList />} />
+            <Route path="/admin/reels/new" element={<ReelForm />} />
+            <Route path="/admin/reels/:id/edit" element={<ReelForm />} />
             <Route path="/admin/media" element={<MediaLibrary />} />
           </Route>
         </Routes>
