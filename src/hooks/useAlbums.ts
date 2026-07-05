@@ -13,7 +13,7 @@ export function useAlbums(genreSlug?: string | null) {
       let query = supabase
         .from('albums')
         .select('*, artist:artists(*), genre:genres(*)')
-        .order('created_at', { ascending: false })
+        .order('title', { ascending: true })
 
       if (genreSlug) {
         query = query.eq('genre.slug', genreSlug)

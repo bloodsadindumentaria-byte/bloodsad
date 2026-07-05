@@ -24,7 +24,7 @@ export function Catalog() {
   const [query, setQuery] = useState(searchParams.get('q') ?? '')
   const activeGenre = searchParams.get('genre') ?? null
   const activeType = (searchParams.get('type') as ProductType | null) ?? null
-  const onlyAvailable = searchParams.get('available') !== 'false'
+  const onlyAvailable = searchParams.get('available') === 'true'
 
   // Sincronizar query con URL con debounce
   useEffect(() => {
@@ -61,8 +61,8 @@ export function Catalog() {
   function toggleAvailable() {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
-      if (onlyAvailable) next.set('available', 'false')
-      else next.delete('available')
+      if (onlyAvailable) next.delete('available')
+      else next.set('available', 'true')
       return next
     }, { replace: true })
   }

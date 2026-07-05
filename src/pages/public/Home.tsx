@@ -17,6 +17,10 @@ export function Home() {
   const { genres } = useGenres()
   const lang = i18n.language
 
+  const latestAlbums = [...albums]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 10)
+
   const title = `${SITE_NAME} — Discos de metal extremo y raridades`
   const description =
     lang === 'en'
@@ -79,7 +83,7 @@ export function Home() {
       {/* Últimos ingresos */}
       <section className="max-w-6xl mx-auto px-4 py-10">
         <h2 className="text-xl font-bold mb-6">{t('home.latest_arrivals')}</h2>
-        <CatalogGrid albums={albums.slice(0, 10)} />
+        <CatalogGrid albums={latestAlbums} />
         <div className="text-center mt-8">
           <Link to="/catalog" className={buttonVariants({ variant: 'outline' })}>
             {t('home.browse_catalog')}

@@ -9,7 +9,7 @@ import { LoadingState, NotFoundState } from '@/components/ui/loading'
 import { useAlbum } from '@/hooks/useAlbums'
 import { formatPrice, conditionLabel, buildWhatsAppLink, buildMailtoLink } from '@/lib/utils'
 import { cn } from '@/lib/utils'
-import { SITE_NAME } from '@/lib/constants'
+import { SITE_NAME, countryFlag } from '@/lib/constants'
 import type { AlbumImages } from '@/types'
 
 const WHATSAPP = import.meta.env.VITE_CONTACT_WHATSAPP as string
@@ -103,6 +103,11 @@ export function Album() {
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">{t('album.year')}: {album.year}</Badge>
               <Badge variant="secondary">{t('album.label')}: {album.label}</Badge>
+              {album.label_country && (
+                <Badge variant="secondary" title={album.label_country}>
+                  {countryFlag(album.label_country)} {album.label_country}
+                </Badge>
+              )}
               <Badge variant="outline">{conditionLabel(album.condition, lang)}</Badge>
               {album.genre && (
                 <Link to={`/genre/${album.genre.slug}`}>

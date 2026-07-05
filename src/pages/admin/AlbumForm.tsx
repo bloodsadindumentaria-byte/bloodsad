@@ -13,7 +13,7 @@ import { useGenres } from '@/hooks/useGenres'
 import { ComboCreate } from '@/components/admin/ComboCreate'
 import { DropZone } from '@/components/admin/DropZone'
 import { MediaPickerModal } from '@/components/admin/MediaPickerModal'
-import { PRODUCT_TYPES, PRODUCT_TYPE_META } from '@/lib/constants'
+import { PRODUCT_TYPES, PRODUCT_TYPE_META, COUNTRIES, countryFlag } from '@/lib/constants'
 import type { Album, AlbumCondition, AlbumImages, Currency, ProductAttributes, ProductType } from '@/types'
 
 function slugify(name: string) {
@@ -328,12 +328,19 @@ export function AlbumForm() {
             <Input value={form.label ?? ''} onChange={(e) => set('label', e.target.value)} />
           </div>
           <div className="space-y-1">
-            <Label>País del sello</Label>
-            <Input
-              value={form.label_country ?? ''}
-              onChange={(e) => set('label_country', e.target.value)}
-              placeholder="Ej: Argentina, Brasil, USA"
-            />
+            <Label>{isAnime ? 'País de origen' : 'País del sello'}</Label>
+            <Select
+              value={form.label_country || 'none'}
+              onValueChange={(v: string | null) => set('label_country', !v || v === 'none' ? '' : v)}
+            >
+              <SelectTrigger><SelectValue placeholder="Sin especificar" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sin especificar</SelectItem>
+                {COUNTRIES.map((c) => (
+                  <SelectItem key={c.code} value={c.name}>{countryFlag(c.name)} {c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
