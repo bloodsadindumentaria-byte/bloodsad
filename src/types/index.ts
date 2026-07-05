@@ -67,8 +67,7 @@ export interface Album {
   currency: Currency
   sold: boolean
   images: AlbumImages | null
-  genre_id: string
-  genre?: Genre
+  genres?: Genre[]
   product_type: ProductType
   attributes: ProductAttributes | null
   created_at: string

@@ -49,10 +49,18 @@ create table if not exists albums (
   currency       text check (currency in ('ARS','USD','EUR')) default 'ARS',
   sold           boolean not null default false,
   images         jsonb default '[]',
-  genre_id       uuid references genres(id) on delete set null,
   product_type   text not null default 'music' check (product_type in ('music','anime_dvd')),
   attributes     jsonb default '{}',
   created_at     timestamptz default now()
+);
+
+-- ────────────────────────────────────────────
+-- ALBUM_GENRES (muchos a muchos: un disco/anime puede tener varios géneros)
+-- ────────────────────────────────────────────
+create table if not exists album_genres (
+  album_id uuid not null references albums(id) on delete cascade,
+  genre_id uuid not null references genres(id) on delete cascade,
+  primary key (album_id, genre_id)
 );
 
 -- ────────────────────────────────────────────
@@ -73,20 +81,23 @@ create table if not exists orders (
 -- ────────────────────────────────────────────
 
 -- Public read access
-alter table genres  enable row level security;
-alter table artists enable row level security;
-alter table albums  enable row level security;
-alter table orders  enable row level security;
+alter table genres        enable row level security;
+alter table artists       enable row level security;
+alter table albums        enable row level security;
+alter table album_genres  enable row level security;
+alter table orders        enable row level security;
 
-create policy "Public read genres"  on genres  for select using (true);
-create policy "Public read artists" on artists for select using (true);
-create policy "Public read albums"  on albums  for select using (true);
+create policy "Public read genres"       on genres        for select using (true);
+create policy "Public read artists"      on artists       for select using (true);
+create policy "Public read albums"       on albums        for select using (true);
+create policy "Public read album_genres" on album_genres  for select using (true);
 
 -- Authenticated users can manage everything (admin)
-create policy "Auth manage genres"  on genres  for all using (auth.role() = 'authenticated');
-create policy "Auth manage artists" on artists for all using (auth.role() = 'authenticated');
-create policy "Auth manage albums"  on albums  for all using (auth.role() = 'authenticated');
-create policy "Auth manage orders"  on orders  for all using (auth.role() = 'authenticated');
+create policy "Auth manage genres"       on genres        for all using (auth.role() = 'authenticated');
+create policy "Auth manage artists"      on artists       for all using (auth.role() = 'authenticated');
+create policy "Auth manage albums"       on albums        for all using (auth.role() = 'authenticated');
+create policy "Auth manage album_genres" on album_genres  for all using (auth.role() = 'authenticated');
+create policy "Auth manage orders"       on orders        for all using (auth.role() = 'authenticated');
 
 -- ────────────────────────────────────────────
 -- SEED DATA (opcional, para testing)

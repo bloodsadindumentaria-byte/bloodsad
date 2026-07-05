@@ -85,6 +85,39 @@ export function Album() {
                 ))}
               </div>
             )}
+
+            {album.artist && (
+              <div className="border border-[#2a2a2a] rounded-sm p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  {album.artist.image_url && (
+                    <img
+                      src={album.artist.image_url}
+                      alt={album.artist.name}
+                      className="w-12 h-12 rounded-full object-cover border border-[#2a2a2a] flex-shrink-0"
+                    />
+                  )}
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#555555]">
+                      {t('artist.about')}
+                    </p>
+                    <p className="text-sm font-semibold text-[#e0e0e0]">{album.artist.name}</p>
+                  </div>
+                </div>
+
+                {artistBio && (
+                  <p className="text-sm text-[#888888] leading-relaxed line-clamp-3">
+                    {artistBio}
+                  </p>
+                )}
+
+                <Link
+                  to={`/artist/${album.artist.slug}`}
+                  className="text-xs text-[#6B5CE7] hover:text-[#4a3eb5] transition-colors inline-block"
+                >
+                  {t('artist.read_more')} →
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -109,11 +142,11 @@ export function Album() {
                 </Badge>
               )}
               <Badge variant="outline">{conditionLabel(album.condition, lang)}</Badge>
-              {album.genre && (
-                <Link to={`/genre/${album.genre.slug}`}>
-                  <Badge className="cursor-pointer">{album.genre.name}</Badge>
+              {album.genres?.map((g) => (
+                <Link key={g.id} to={`/genre/${g.slug}`}>
+                  <Badge className="cursor-pointer">{g.name}</Badge>
                 </Link>
-              )}
+              ))}
             </div>
 
             {description && (
@@ -171,38 +204,6 @@ export function Album() {
               </div>
             )}
 
-            {album.artist && (
-              <div className="border border-[#2a2a2a] rounded-sm p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  {album.artist.image_url && (
-                    <img
-                      src={album.artist.image_url}
-                      alt={album.artist.name}
-                      className="w-12 h-12 rounded-full object-cover border border-[#2a2a2a] flex-shrink-0"
-                    />
-                  )}
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-[#555555]">
-                      {t('artist.about')}
-                    </p>
-                    <p className="text-sm font-semibold text-[#e0e0e0]">{album.artist.name}</p>
-                  </div>
-                </div>
-
-                {artistBio && (
-                  <p className="text-sm text-[#888888] leading-relaxed line-clamp-3">
-                    {artistBio}
-                  </p>
-                )}
-
-                <Link
-                  to={`/artist/${album.artist.slug}`}
-                  className="text-xs text-[#6B5CE7] hover:text-[#4a3eb5] transition-colors inline-block"
-                >
-                  {t('artist.read_more')} →
-                </Link>
-              </div>
-            )}
           </div>
         </div>
       </div>

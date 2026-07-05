@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Album } from '@/types'
+import type { Album, Genre } from '@/types'
 
-export function useAlbums(genreSlug?: string | null) {
+const SELECT = '*, artist:artists(*), album_genres(genre:genres(*))'
+
+type AlbumRow = Omit<Album, 'genres'> & { album_genres: { genre: Genre }[] }
+
+function mapAlbum(row: AlbumRow): Album {
+  const genres = (row.album_genres ?? []).map((ag) => ag.genre).filter(Boolean)
+  return { ...row, genres }
+}
+
+export function useAlbums() {
   const [albums, setAlbums] = useState<Album[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -10,22 +19,17 @@ export function useAlbums(genreSlug?: string | null) {
   useEffect(() => {
     async function fetch() {
       setLoading(true)
-      let query = supabase
+      const { data, error } = await supabase
         .from('albums')
-        .select('*, artist:artists(*), genre:genres(*)')
+        .select(SELECT)
         .order('title', { ascending: true })
 
-      if (genreSlug) {
-        query = query.eq('genre.slug', genreSlug)
-      }
-
-      const { data, error } = await query
       if (error) setError(error.message)
-      else setAlbums((data as Album[]) ?? [])
+      else setAlbums(((data as AlbumRow[]) ?? []).map(mapAlbum))
       setLoading(false)
     }
     void fetch()
-  }, [genreSlug])
+  }, [])
 
   return { albums, loading, error }
 }
@@ -40,11 +44,11 @@ export function useAlbum(slug: string) {
       setLoading(true)
       const { data, error } = await supabase
         .from('albums')
-        .select('*, artist:artists(*), genre:genres(*)')
+        .select(SELECT)
         .eq('slug', slug)
         .single()
       if (error) setError(error.message)
-      else setAlbum(data as Album)
+      else setAlbum(mapAlbum(data as AlbumRow))
       setLoading(false)
     }
     void fetch()

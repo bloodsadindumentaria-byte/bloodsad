@@ -10,12 +10,12 @@ import { SITE_NAME } from '@/lib/constants'
 
 export function Genre() {
   const { slug = '' } = useParams<{ slug: string }>()
-  const { albums, loading } = useAlbums(slug)
+  const { albums, loading } = useAlbums()
   const { genres } = useGenres()
   const { t } = useTranslation()
 
   const genre = genres.find((g) => g.slug === slug)
-  const filtered = albums.filter((a) => a.genre?.slug === slug)
+  const filtered = albums.filter((a) => a.genres?.some((g) => g.slug === slug))
 
   return (
     <>

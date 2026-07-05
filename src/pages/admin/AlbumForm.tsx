@@ -11,6 +11,7 @@ import { uploadImage } from '@/lib/upload'
 import { useArtists } from '@/hooks/useArtists'
 import { useGenres } from '@/hooks/useGenres'
 import { ComboCreate } from '@/components/admin/ComboCreate'
+import { GenreMultiSelect } from '@/components/admin/GenreMultiSelect'
 import { DropZone } from '@/components/admin/DropZone'
 import { MediaPickerModal } from '@/components/admin/MediaPickerModal'
 import { PRODUCT_TYPES, PRODUCT_TYPE_META, COUNTRIES, countryFlag } from '@/lib/constants'
@@ -57,6 +58,7 @@ export function AlbumForm() {
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([])
 
   const [pickerTarget, setPickerTarget] = useState<'cover' | 'gallery' | null>(null)
+  const [selectedGenreIds, setSelectedGenreIds] = useState<string[]>([])
 
   useEffect(() => {
     if (initialArtists.length) setLocalArtists(initialArtists.map((a) => ({ id: a.id, name: a.name })))
@@ -93,8 +95,11 @@ export function AlbumForm() {
 
   useEffect(() => {
     if (!isEdit) return
-    supabase.from('albums').select('*').eq('id', id).single().then(({ data }) => {
-      if (data) setForm(data as Album)
+    supabase.from('albums').select('*, album_genres(genre_id)').eq('id', id).single().then(({ data }) => {
+      if (!data) return
+      const { album_genres, ...rest } = data as Album & { album_genres: { genre_id: string }[] }
+      setForm(rest)
+      setSelectedGenreIds((album_genres ?? []).map((ag) => ag.genre_id))
     })
   }, [id, isEdit])
 
@@ -177,12 +182,30 @@ export function AlbumForm() {
     if (isAnime) payload.artist_id = null as unknown as string
     if (!isEdit) delete payload.id
 
-    const { error: dbError } = isEdit
-      ? await supabase.from('albums').update(payload).eq('id', id!)
-      : await supabase.from('albums').insert(payload)
+    const { data: savedAlbum, error: dbError } = isEdit
+      ? await supabase.from('albums').update(payload).eq('id', id!).select('id').single()
+      : await supabase.from('albums').insert(payload).select('id').single()
 
-    if (dbError) setError(dbError.message)
-    else navigate('/admin/albums')
+    if (dbError) {
+      setError(dbError.message)
+      setSaving(false)
+      return
+    }
+
+    const albumId = (savedAlbum as { id: string }).id
+    await supabase.from('album_genres').delete().eq('album_id', albumId)
+    if (selectedGenreIds.length) {
+      const { error: genresError } = await supabase
+        .from('album_genres')
+        .insert(selectedGenreIds.map((genre_id) => ({ album_id: albumId, genre_id })))
+      if (genresError) {
+        setError(genresError.message)
+        setSaving(false)
+        return
+      }
+    }
+
+    navigate('/admin/albums')
     setSaving(false)
   }
 
@@ -242,25 +265,25 @@ export function AlbumForm() {
           </div>
         </div>
 
-        {/* Artista + género */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          {!isAnime && (
-            <ComboCreate
-              label="Artista"
-              options={artists}
-              selectedId={form.artist_id ?? ''}
-              onSelect={(id) => set('artist_id', id)}
-              onCreate={createArtist}
-            />
-          )}
+        {/* Artista */}
+        {!isAnime && (
           <ComboCreate
-            label="Género"
-            options={genres}
-            selectedId={form.genre_id ?? ''}
-            onSelect={(id) => set('genre_id', id)}
-            onCreate={createGenre}
+            label="Artista"
+            options={artists}
+            selectedId={form.artist_id ?? ''}
+            onSelect={(id) => set('artist_id', id)}
+            onCreate={createArtist}
           />
-        </div>
+        )}
+
+        {/* Géneros (múltiples) */}
+        <GenreMultiSelect
+          label="Géneros"
+          options={genres}
+          selectedIds={selectedGenreIds}
+          onChange={setSelectedGenreIds}
+          onCreate={createGenre}
+        />
 
         {/* Campos específicos de anime */}
         {isAnime && (

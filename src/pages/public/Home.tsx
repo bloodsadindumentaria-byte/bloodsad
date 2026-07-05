@@ -43,9 +43,6 @@ export function Home() {
       >
         <div className="absolute inset-0 bg-black/60" />
         <div className="relative z-10 text-center px-4">
-          <p className="text-[#e0e0e0] text-sm sm:text-base tracking-widest uppercase mb-4">
-            {t('home.hero_subtitle')}
-          </p>
           <Link
             to="/catalog"
             className={cn(buttonVariants({ size: 'lg' }), 'bg-[#6B5CE7] hover:bg-[#4a3eb5] border-transparent text-white text-lg px-10 py-4')}

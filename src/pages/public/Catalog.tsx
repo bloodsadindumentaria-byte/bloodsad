@@ -68,12 +68,12 @@ export function Catalog() {
   }
 
   const byType = albums.filter((a) => !activeType || (a.product_type ?? 'music') === activeType)
-  const relevantGenreSlugs = new Set(byType.map((a) => a.genre?.slug).filter(Boolean))
+  const relevantGenreSlugs = new Set(byType.flatMap((a) => a.genres ?? []).map((g) => g.slug))
   const visibleGenres = genres.filter((g) => relevantGenreSlugs.has(g.slug))
 
   const filtered = byType.filter((a) => {
     if (onlyAvailable && a.sold) return false
-    if (activeGenre && a.genre?.slug !== activeGenre) return false
+    if (activeGenre && !a.genres?.some((g) => g.slug === activeGenre)) return false
     if (query.trim()) {
       const q = query.toLowerCase()
       return (
