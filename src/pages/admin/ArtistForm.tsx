@@ -98,7 +98,14 @@ export function ArtistForm() {
       setUploading(false)
     }
 
-    const payload = { ...form, image_url: imageUrl, gallery }
+    const payload = {
+      ...form,
+      name: (form.name ?? '').trim(),
+      slug: (form.slug ?? '').trim(),
+      origin: (form.origin ?? '').trim(),
+      image_url: imageUrl,
+      gallery,
+    }
     if (!isEdit) delete payload.id
 
     const { error } = isEdit

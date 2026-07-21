@@ -60,20 +60,19 @@ export const COUNTRIES: Country[] = [
   { name: 'Sudáfrica', code: 'ZA', aliases: ['south africa'] },
 ]
 
-function flagFromCode(code: string): string {
-  return code
-    .toUpperCase()
-    .split('')
-    .map((c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
-    .join('')
-}
-
-export function countryFlag(name?: string | null): string {
+export function countryCode(name?: string | null): string {
   if (!name) return ''
   const normalized = name.trim().toLowerCase()
   if (!normalized) return ''
   const match = COUNTRIES.find(
     (c) => c.name.toLowerCase() === normalized || c.aliases?.some((a) => a === normalized)
   )
-  return match ? flagFromCode(match.code) : ''
+  return match ? match.code.toLowerCase() : ''
+}
+
+// Emoji de bandera (🇦🇷) no se renderiza en Windows/algunos navegadores —
+// se usan imágenes reales de flagcdn.com en su lugar (ver <CountryFlag>).
+export function countryFlagUrl(name?: string | null, width: 20 | 40 | 80 = 40): string {
+  const code = countryCode(name)
+  return code ? `https://flagcdn.com/w${width}/${code}.png` : ''
 }

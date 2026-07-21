@@ -14,7 +14,8 @@ import { ComboCreate } from '@/components/admin/ComboCreate'
 import { GenreMultiSelect } from '@/components/admin/GenreMultiSelect'
 import { DropZone } from '@/components/admin/DropZone'
 import { MediaPickerModal } from '@/components/admin/MediaPickerModal'
-import { PRODUCT_TYPES, PRODUCT_TYPE_META, COUNTRIES, countryFlag } from '@/lib/constants'
+import { PRODUCT_TYPES, PRODUCT_TYPE_META, COUNTRIES } from '@/lib/constants'
+import { CountryFlag } from '@/components/ui/country-flag'
 import type { Album, AlbumCondition, AlbumImages, Currency, ProductAttributes, ProductType } from '@/types'
 
 function slugify(name: string) {
@@ -178,7 +179,12 @@ export function AlbumForm() {
       setUploading(false)
     }
 
-    const payload: Partial<Album> = { ...form, images }
+    const payload: Partial<Album> = {
+      ...form,
+      title: (form.title ?? '').trim(),
+      slug: (form.slug ?? '').trim(),
+      images,
+    }
     if (isAnime) payload.artist_id = null as unknown as string
     if (!isEdit) delete payload.id
 
@@ -360,7 +366,12 @@ export function AlbumForm() {
               <SelectContent>
                 <SelectItem value="none">Sin especificar</SelectItem>
                 {COUNTRIES.map((c) => (
-                  <SelectItem key={c.code} value={c.name}>{countryFlag(c.name)} {c.name}</SelectItem>
+                  <SelectItem key={c.code} value={c.name}>
+                    <span className="inline-flex items-center gap-1.5">
+                      <CountryFlag country={c.name} className="h-3 w-4 rounded-[1px] object-cover" />
+                      {c.name}
+                    </span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

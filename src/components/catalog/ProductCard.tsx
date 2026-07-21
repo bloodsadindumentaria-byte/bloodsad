@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Disc3, Clapperboard } from 'lucide-react'
 import { formatPrice, conditionLabel, buildWhatsAppLink } from '@/lib/utils'
-import { countryFlag } from '@/lib/constants'
+import { CountryFlag } from '@/components/ui/country-flag'
 import type { Album } from '@/types'
 
 interface Props {
@@ -16,7 +16,6 @@ export function ProductCard({ album }: Props) {
   const lang = i18n.language as 'es' | 'en'
   const cover = album.images?.cover ?? ''
   const isAnime = album.product_type === 'anime_dvd'
-  const flag = countryFlag(album.label_country)
 
   function handleBuy(e: React.MouseEvent) {
     e.preventDefault()
@@ -49,7 +48,7 @@ export function ProductCard({ album }: Props) {
 
           <span className="absolute top-2 left-2 flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded-sm p-1 text-[#e0e0e0]">
             {isAnime ? <Clapperboard className="h-3.5 w-3.5" /> : <Disc3 className="h-3.5 w-3.5" />}
-            {flag && <span title={album.label_country ?? ''} className="text-xs leading-none">{flag}</span>}
+            <CountryFlag country={album.label_country} className="h-3 w-4 rounded-[1px] object-cover" />
           </span>
 
           {album.sold && (
