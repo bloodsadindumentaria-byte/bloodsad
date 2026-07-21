@@ -62,11 +62,13 @@ export function Artist() {
               <div>
                 <h2 className="text-xl font-bold mb-4">{t('artist.gallery')}</h2>
                 {activeGalleryImg && (
-                  <img
-                    src={activeGalleryImg}
-                    alt={artist.name}
-                    className="w-full max-h-[420px] object-cover rounded-sm border border-[#2a2a2a] mb-2"
-                  />
+                  <div className="w-full h-[420px] flex items-center justify-center bg-[#111111] rounded-sm border border-[#2a2a2a] mb-2 overflow-hidden">
+                    <img
+                      src={activeGalleryImg}
+                      alt={artist.name}
+                      className="max-w-full max-h-full w-auto h-auto object-contain"
+                    />
+                  </div>
                 )}
                 <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
                   {gallery.map((src, i) => (
