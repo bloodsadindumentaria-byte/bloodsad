@@ -41,23 +41,27 @@
   --radius: 0.25rem;
 }
 
-/* Reset global */
-*,
-::after,
-::before,
-::backdrop,
-::file-selector-button {
-  border-color: #2a2a2a;
-  box-sizing: border-box;
-}
+/* Reset global — en @layer base para que las utilidades de Tailwind
+   (ej: hover:border-*) puedan pisar esto. Fuera de un @layer, este
+   bloque le gana a cualquier utilidad sin importar la especificidad. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: #2a2a2a;
+    box-sizing: border-box;
+  }
 
-body {
-  background-color: #0a0a0a;
-  color: #e0e0e0;
-  font-family: 'Inter', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  margin: 0;
+  body {
+    background-color: #0a0a0a;
+    color: #e0e0e0;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+  }
 }
 
 /* Scrollbar */

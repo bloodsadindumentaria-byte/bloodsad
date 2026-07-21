@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
+import { Camera } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { CatalogGrid } from '@/components/catalog/CatalogGrid'
 import { ArtistCard } from '@/components/artist/ArtistCard'
@@ -11,6 +12,8 @@ import { useReels } from '@/hooks/useReels'
 import { ReelsCarousel } from '@/components/reels/ReelsCarousel'
 import { cn } from '@/lib/utils'
 import { SITE_NAME } from '@/lib/constants'
+
+const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL as string
 
 export function Home() {
   const { t, i18n } = useTranslation()
@@ -45,13 +48,27 @@ export function Home() {
         style={{ backgroundImage: 'url(/banner.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
         <div className="absolute inset-0 bg-black/60" />
-        <div className="relative z-10 text-center px-4">
+        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-3 px-4">
           <Link
             to="/catalog"
             className={cn(buttonVariants({ size: 'lg' }), 'bg-[#6B5CE7] hover:bg-[#4a3eb5] border-transparent text-white text-lg px-10 py-4')}
           >
             {t('home.browse_catalog')}
           </Link>
+          {INSTAGRAM_URL && (
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                buttonVariants({ size: 'lg' }),
+                'bg-black/30 backdrop-blur-sm border-white/40 text-white hover:border-[#6B5CE7] hover:text-[#6B5CE7] hover:bg-black/40 text-lg px-10 py-4 gap-2'
+              )}
+            >
+              <Camera className="h-5 w-5" />
+              {t('home.follow_instagram')}
+            </a>
+          )}
         </div>
       </section>
 

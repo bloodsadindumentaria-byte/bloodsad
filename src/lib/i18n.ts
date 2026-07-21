@@ -22,6 +22,7 @@ const resources = {
         browse_genres: 'Buscar por género',
         latest_arrivals: 'Últimos ingresos',
         view_all_artists: 'Ver todos los artistas',
+        follow_instagram: 'Seguinos en Instagram',
       },
       catalog: {
         title: 'Catálogo',
@@ -127,6 +128,7 @@ const resources = {
         browse_genres: 'Browse by genre',
         latest_arrivals: 'Latest arrivals',
         view_all_artists: 'View all artists',
+        follow_instagram: 'Follow us on Instagram',
       },
       catalog: {
         title: 'Catalog',
