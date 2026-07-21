@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { BackLink } from '@/components/ui/back-link'
 import { LoadingState, NotFoundState } from '@/components/ui/loading'
 import { CountryFlag } from '@/components/ui/country-flag'
 import { useAlbum } from '@/hooks/useAlbums'
@@ -52,6 +53,7 @@ export function Album() {
       </Helmet>
 
       <div className="max-w-5xl mx-auto px-4 py-8">
+        <BackLink />
         <Breadcrumbs items={[
           { label: t('breadcrumbs.home'), to: '/' },
           { label: t('breadcrumbs.catalog'), to: '/catalog' },

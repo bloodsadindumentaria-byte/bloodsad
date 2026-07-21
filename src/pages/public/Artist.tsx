@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { ArtistBio } from '@/components/artist/ArtistBio'
 import { CatalogGrid } from '@/components/catalog/CatalogGrid'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { BackLink } from '@/components/ui/back-link'
 import { LoadingState, NotFoundState } from '@/components/ui/loading'
 import { useArtist } from '@/hooks/useArtists'
 import { useAlbums } from '@/hooks/useAlbums'
@@ -38,6 +39,7 @@ export function Artist() {
       </Helmet>
 
       <div className="max-w-5xl mx-auto px-4 py-8">
+        <BackLink />
         <Breadcrumbs items={[
           { label: t('breadcrumbs.home'), to: '/' },
           { label: t('breadcrumbs.artists'), to: '/artists' },

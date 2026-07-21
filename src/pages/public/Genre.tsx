@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { CatalogGrid } from '@/components/catalog/CatalogGrid'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { BackLink } from '@/components/ui/back-link'
 import { LoadingState } from '@/components/ui/loading'
 import { useAlbums } from '@/hooks/useAlbums'
 import { useGenres } from '@/hooks/useGenres'
@@ -25,6 +26,7 @@ export function Genre() {
       </Helmet>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
+        <BackLink />
         <Breadcrumbs items={[
           { label: t('breadcrumbs.home'), to: '/' },
           { label: t('breadcrumbs.catalog'), to: '/catalog' },

@@ -71,6 +71,7 @@ const resources = {
       common: {
         loading: 'Cargando...',
         not_found: 'No encontrado.',
+        back: 'Volver',
       },
       admin: {
         dashboard: 'Panel de administración',
@@ -177,6 +178,7 @@ const resources = {
       common: {
         loading: 'Loading...',
         not_found: 'Not found.',
+        back: 'Back',
       },
       admin: {
         dashboard: 'Admin Dashboard',

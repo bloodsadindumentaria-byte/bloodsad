@@ -30,9 +30,14 @@ export function ArtistList() {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">{t('admin.artists')}</h1>
-        <Link to="/admin/artists/new" className={buttonVariants()}>
-          {t('admin.new')}
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link to="/admin" className="text-[#888888] hover:text-[#6B5CE7] text-sm transition-colors">
+            ← Dashboard
+          </Link>
+          <Link to="/admin/artists/new" className={buttonVariants()}>
+            {t('admin.new')}
+          </Link>
+        </div>
       </div>
 
       <input
