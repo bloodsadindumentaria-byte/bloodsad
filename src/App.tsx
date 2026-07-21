@@ -10,6 +10,7 @@ import { Catalog } from '@/pages/public/Catalog'
 import { Album } from '@/pages/public/Album'
 import { Artist } from '@/pages/public/Artist'
 import { Artists } from '@/pages/public/Artists'
+import { Reels } from '@/pages/public/Reels'
 import { Genre } from '@/pages/public/Genre'
 
 import { Login } from '@/pages/admin/Login'
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/album/:slug" element={<Album />} />
             <Route path="/artists" element={<Artists />} />
             <Route path="/artist/:slug" element={<Artist />} />
+            <Route path="/reels" element={<Reels />} />
             <Route path="/genre/:slug" element={<Genre />} />
           </Route>
 

@@ -146,7 +146,12 @@ export function Home() {
       {/* Reels de Instagram */}
       {reels.length > 0 && (
         <section className="max-w-6xl mx-auto px-4 py-10">
-          <h2 className="text-xl font-bold mb-6">{t('reels.title')}</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold">{t('reels.title')}</h2>
+            <Link to="/reels" className="text-sm text-[#6B5CE7] hover:text-[#4a3eb5] transition-colors">
+              {t('reels.page_title')} →
+            </Link>
+          </div>
           <ReelsCarousel reels={reels} />
         </section>
       )}

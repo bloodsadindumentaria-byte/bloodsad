@@ -20,6 +20,7 @@ export function Footer() {
           <Link to="/catalog" className="text-[#888888] hover:text-[#e0e0e0] transition-colors">{t('nav.catalog')}</Link>
           <Link to="/catalog?type=anime_dvd" className="text-[#888888] hover:text-[#e0e0e0] transition-colors">{t('nav.animes')}</Link>
           <Link to="/artists" className="text-[#888888] hover:text-[#e0e0e0] transition-colors">{t('nav.artists')}</Link>
+          <Link to="/reels" className="text-[#888888] hover:text-[#e0e0e0] transition-colors">{t('nav.reels')}</Link>
         </nav>
 
         <div className="flex flex-col items-center sm:items-end justify-end gap-2 text-sm text-[#888888] text-center sm:text-right">

@@ -42,6 +42,7 @@ export function Header() {
           <Link to="/catalog" className={typeLinkClass(isCatalogRoute)}>{t('nav.catalog')}</Link>
           <Link to="/catalog?type=anime_dvd" className={typeLinkClass(isAnimeRoute)}>{t('nav.animes')}</Link>
           <NavLink to="/artists" className={navLinkClass}>{t('nav.artists')}</NavLink>
+          <NavLink to="/reels" className={navLinkClass}>{t('nav.reels')}</NavLink>
 
           <button
             onClick={toggleLang}
@@ -76,6 +77,7 @@ export function Header() {
           <Link to="/catalog" className={typeLinkClass(isCatalogRoute)} onClick={() => setMenuOpen(false)}>{t('nav.catalog')}</Link>
           <Link to="/catalog?type=anime_dvd" className={typeLinkClass(isAnimeRoute)} onClick={() => setMenuOpen(false)}>{t('nav.animes')}</Link>
           <NavLink to="/artists" className={navLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.artists')}</NavLink>
+          <NavLink to="/reels" className={navLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.reels')}</NavLink>
 
           <div className="flex items-center justify-between pt-2 border-t border-[#2a2a2a]">
             <button

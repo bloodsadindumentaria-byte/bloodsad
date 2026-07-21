@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { X, ExternalLink, Camera } from 'lucide-react'
 import { toEmbedUrl } from '@/lib/instagram'
@@ -22,8 +23,23 @@ export function ReelModal({ reel, onClose }: Props) {
         className="bg-[#111111] border border-[#2a2a2a] rounded-sm w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-end px-3 py-2 border-b border-[#2a2a2a]">
-          <button onClick={onClose} className="text-[#888888] hover:text-[#e0e0e0] transition-colors" aria-label="Cerrar">
+        <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-[#2a2a2a]">
+          {(reel.artist || reel.album) ? (
+            <p className="text-xs text-[#888888] truncate">
+              {reel.artist && (
+                <Link to={`/artist/${reel.artist.slug}`} onClick={onClose} className="hover:text-[#6B5CE7] transition-colors">
+                  {reel.artist.name}
+                </Link>
+              )}
+              {reel.artist && reel.album && <span className="mx-1.5">·</span>}
+              {reel.album && (
+                <Link to={`/album/${reel.album.slug}`} onClick={onClose} className="hover:text-[#6B5CE7] transition-colors">
+                  {reel.album.title}
+                </Link>
+              )}
+            </p>
+          ) : <span />}
+          <button onClick={onClose} className="text-[#888888] hover:text-[#e0e0e0] transition-colors flex-shrink-0" aria-label="Cerrar">
             <X className="h-5 w-5" />
           </button>
         </div>
