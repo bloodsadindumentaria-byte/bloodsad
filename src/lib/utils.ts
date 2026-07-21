@@ -43,3 +43,10 @@ export function buildMailtoLink(albumTitle: string, email: string): string {
   const body = encodeURIComponent(`Hola, me interesa el disco: ${albumTitle}`)
   return `mailto:${email}?subject=${subject}&body=${body}`
 }
+
+export function formatCount(n?: number | null): string {
+  if (n == null) return ''
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`
+  return String(n)
+}

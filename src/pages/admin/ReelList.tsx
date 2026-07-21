@@ -11,7 +11,7 @@ export function ReelList() {
   const [deleting, setDeleting] = useState<string | null>(null)
 
   async function handleDelete(id: string) {
-    if (!confirm('¿Eliminar este reel?')) return
+    if (!confirm('¿Eliminar este video?')) return
     setDeleting(id)
     await supabase.from('reels').delete().eq('id', id)
     setDeleting(null)
@@ -21,7 +21,7 @@ export function ReelList() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Reels de Instagram</h1>
+        <h1 className="text-2xl font-bold">Videos</h1>
         <div className="flex items-center gap-4">
           <Link to="/admin" className="text-[#888888] hover:text-[#6B5CE7] text-sm transition-colors">
             ← Dashboard
@@ -39,7 +39,7 @@ export function ReelList() {
           <table className="w-full text-sm">
             <thead className="bg-muted text-muted-foreground">
               <tr>
-                <th className="text-left p-3 font-medium">Link</th>
+                <th className="text-left p-3 font-medium">Video</th>
                 <th className="text-left p-3 font-medium hidden sm:table-cell">Álbum</th>
                 <th className="text-left p-3 font-medium hidden sm:table-cell">Artista</th>
                 <th className="text-left p-3 font-medium hidden md:table-cell">Vistas / Me gusta</th>
@@ -50,15 +50,15 @@ export function ReelList() {
               {reels.length === 0 && (
                 <tr>
                   <td colSpan={5} className="p-6 text-center text-[#888888] text-sm">
-                    Todavía no hay reels cargados.
+                    Todavía no hay videos cargados.
                   </td>
                 </tr>
               )}
               {reels.map((reel) => (
                 <tr key={reel.id} className="border-t hover:bg-muted/30">
-                  <td className="p-3 font-medium max-w-[240px] truncate">
-                    <a href={reel.instagram_url} target="_blank" rel="noopener noreferrer" className="text-[#6B5CE7] hover:underline">
-                      {reel.instagram_url}
+                  <td className="p-3 font-medium">
+                    <a href={reel.video_url} target="_blank" rel="noopener noreferrer" className="text-[#6B5CE7] hover:underline">
+                      Ver video →
                     </a>
                   </td>
                   <td className="p-3 text-muted-foreground hidden sm:table-cell">{reel.album?.title ?? '—'}</td>

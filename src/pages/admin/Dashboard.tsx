@@ -111,7 +111,7 @@ export function Dashboard() {
         <Card>
           <CardContent className="pt-6 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold">Reels de Instagram</h2>
+              <h2 className="font-semibold">Videos</h2>
               <span className="text-muted-foreground text-sm">{reels.length} total</span>
             </div>
             <div className="flex gap-2">

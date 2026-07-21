@@ -94,7 +94,7 @@ export interface Order {
 
 export interface Reel {
   id: string
-  instagram_url: string
+  video_url: string
   album_id: string | null
   artist_id: string | null
   views: number | null

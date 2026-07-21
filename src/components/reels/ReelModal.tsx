@@ -1,10 +1,6 @@
 import { Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { X, ExternalLink, Camera } from 'lucide-react'
-import { toEmbedUrl } from '@/lib/instagram'
+import { X } from 'lucide-react'
 import type { Reel } from '@/types'
-
-const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL as string
 
 interface Props {
   reel: Reel
@@ -12,8 +8,6 @@ interface Props {
 }
 
 export function ReelModal({ reel, onClose }: Props) {
-  const { t } = useTranslation()
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
@@ -44,36 +38,14 @@ export function ReelModal({ reel, onClose }: Props) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          <iframe
-            src={toEmbedUrl(reel.instagram_url)}
-            title="Instagram reel"
+        <div className="flex-1 overflow-y-auto bg-black">
+          <video
+            src={reel.video_url}
             className="w-full aspect-[9/16]"
-            allow="autoplay; encrypted-media"
+            controls
+            autoPlay
+            playsInline
           />
-        </div>
-
-        <div className="flex flex-col gap-2 p-3 border-t border-[#2a2a2a]">
-          <a
-            href={reel.instagram_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 bg-[#6B5CE7] hover:bg-[#4a3eb5] text-white text-sm font-semibold py-2.5 rounded-sm transition-colors duration-200"
-          >
-            <ExternalLink className="h-4 w-4" />
-            {t('reels.view_on_instagram')}
-          </a>
-          {INSTAGRAM_URL && (
-            <a
-              href={INSTAGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 border border-[#2a2a2a] hover:border-[#6B5CE7] text-[#e0e0e0] hover:text-[#6B5CE7] text-sm font-semibold py-2.5 rounded-sm transition-colors duration-200"
-            >
-              <Camera className="h-4 w-4" />
-              {t('reels.follow_on_instagram')}
-            </a>
-          )}
         </div>
       </div>
     </div>

@@ -64,11 +64,12 @@ create table if not exists album_genres (
 );
 
 -- ────────────────────────────────────────────
--- REELS (Instagram, vinculados opcionalmente a un álbum y/o artista)
+-- REELS (videos propios subidos al storage, vinculados opcionalmente
+-- a un álbum/anime y/o artista)
 -- ────────────────────────────────────────────
 create table if not exists reels (
   id            uuid primary key default gen_random_uuid(),
-  instagram_url text not null,
+  video_url     text not null,
   album_id      uuid references albums(id) on delete set null,
   artist_id     uuid references artists(id) on delete set null,
   views         integer,
