@@ -14,10 +14,10 @@ export function ReelModal({ reel, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-[#111111] border border-[#2a2a2a] rounded-sm w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-[#111111] border border-[#2a2a2a] rounded-sm w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-[#2a2a2a]">
+        <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-[#2a2a2a] flex-shrink-0">
           {(reel.artist || reel.album) ? (
             <p className="text-xs text-[#888888] truncate">
               {reel.artist && (
@@ -38,10 +38,10 @@ export function ReelModal({ reel, onClose }: Props) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-black">
+        <div className="flex-1 min-h-0 flex items-center justify-center bg-black">
           <video
             src={reel.video_url}
-            className="w-full aspect-[9/16]"
+            className="max-w-full max-h-[80vh] w-auto h-auto"
             controls
             autoPlay
             playsInline
