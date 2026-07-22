@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colores base Blood Sad */
+  /* Colores base Roman Wrest Distro */
   --color-bg: #0a0a0a;
   --color-surface: #111111;
   --color-border: #2a2a2a;
   --color-text: #e0e0e0;
   --color-text-muted: #888888;
 
-  /* Violeta Blood Sad */
+  /* Violeta Roman Wrest Distro */
   --color-violet: #6B5CE7;
   --color-violet-hover: #4a3eb5;
   --color-violet-dim: rgba(107, 92, 231, 0.12);

@@ -59,7 +59,7 @@ export function Login() {
                   focus:outline-none focus:border-[#6B5CE7]
                   transition-colors duration-200
                 "
-                placeholder="admin@bloodsad.com"
+                placeholder="admin@romanwrestdistro.com"
               />
             </div>
 
